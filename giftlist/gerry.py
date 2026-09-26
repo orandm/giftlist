@@ -266,3 +266,90 @@ def decide(trigger: Trigger | None, ctx: dict[str, str], *, ghost: bool,
     if line is None:
         return None
     return Popup(line.format_map(ctx), ghost, line)
+
+
+# --- countdown ----------------------------------------------------------------
+
+COUNTDOWN_LINES: dict[str, tuple[str, ...]] = {
+    "chill": (
+        "Plenty of time. Try not to ruin that by panicking early.",
+        "Relax. For now.",
+        "Loads of time left. Don't get complacent.",
+    ),
+    "getting_real": (
+        "Getting closer. The smug 'I've plenty of time' window is closing.",
+        "Two-ish weeks. Still time, less smugness advised.",
+        "It's creeping up on you. I can see it in your face.",
+    ),
+    "urgent": (
+        "Now it's urgent. Now you suddenly care.",
+        "Days, not weeks. Move.",
+        "This is the part where you panic. Right on schedule.",
+    ),
+    "panic": (
+        "Tomorrow, basically. Good luck with that.",
+        "This is now a crisis. Your crisis.",
+    ),
+    "today": (
+        "It's today. It's actually today.",
+        "Merry Christmas. Hope you sorted it in time.",
+    ),
+    "past": (
+        "It's over. You're either a hero or a disgrace. No in between.",
+        "Christmas happened without you rushing. Miracles do occur.",
+    ),
+}
+
+
+def _countdown_band(days: int) -> str:
+    if days > 14:
+        return "chill"
+    if days > 6:
+        return "getting_real"
+    if days > 1:
+        return "urgent"
+    if days == 1:
+        return "panic"
+    if days == 0:
+        return "today"
+    return "past"
+
+
+def countdown(today: date, rng: random.Random) -> tuple[int, str]:
+    """Days left until the 25th (negative once it's past), plus a line that gets ruder as it counts down."""
+    days = (date(today.year, 12, 25) - today).days
+    return days, rng.choice(COUNTDOWN_LINES[_countdown_band(days)])
+
+
+# --- mood -----------------------------------------------------------------------
+
+MOOD_UP = {Trigger.TINY_CHIP_IN.value, Trigger.CHEAP_CLAIM.value, Trigger.SPLIT_CHEAP.value,
+           Trigger.BACKING_OUT.value, Trigger.LOWERED_SHARE.value, Trigger.LATE_CLAIM.value,
+           Trigger.BROWSING.value}
+MOOD_DOWN = {Trigger.MARKED_BOUGHT.value, Trigger.SULK_AVERTED.value, Trigger.APOLOGY.value}
+
+MOOD_LABELS: tuple[tuple[int, str], ...] = (
+    (80, "Furious"),
+    (50, "Grumpy"),
+    (30, "Tolerable"),
+    (15, "Almost pleasant"),
+    (0, "Suspiciously delighted"),
+)
+
+
+def mood_score(recent_triggers: list[str]) -> int:
+    """0 (delighted) to 100 (furious), from what's happened in the last week. Starts at a grumpy baseline."""
+    score = 50
+    for t in recent_triggers:
+        if t in MOOD_UP:
+            score += 10
+        elif t in MOOD_DOWN:
+            score -= 15
+    return max(0, min(100, score))
+
+
+def mood_label(score: int) -> str:
+    for floor, label in MOOD_LABELS:
+        if score >= floor:
+            return label
+    return MOOD_LABELS[-1][1]

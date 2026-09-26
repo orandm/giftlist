@@ -53,6 +53,12 @@ p { margin: 0; }
 .section-title { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-family: var(--xmas); font-weight: 700; font-size: 27px; color: var(--red); }
 .section-title::before { content: ""; width: 30px; height: 22px; flex-shrink: 0; background: url("holly.svg") center / contain no-repeat; }
 
+.mood-bar { height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.mood-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--green); transition: width 0.3s; }
+.mood-bar.grumpy > span { background: var(--gold); }
+.mood-bar.furious > span { background: var(--cane); }
+.badge-row { font-size: 16px; }
+
 /* --- buttons -------------------------------------------------------------- */
 .btn {
   min-height: 54px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;

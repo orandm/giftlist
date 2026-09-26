@@ -148,8 +148,10 @@ def finish_request(resp):
 
 
 def gerry_react(trigger: gerry.Trigger | None, ctx: dict[str, str] | None = None) -> None:
-    """Called after an action. Queues a popup for the next page, maybe."""
+    """Called after an action. Logs it for badges/mood, and queues a popup for the next page, maybe."""
     user = current_user()
+    if trigger is not None:
+        accounts.record_gerry_event(repo(), user, trigger)
     popup = gerry.decide(trigger, ctx or {}, ghost=user.gerry_ghost, last_line=user.gerry_last_line, rng=rng())
     if popup is not None:
         accounts.remember_gerry_line(repo(), user, popup.template)

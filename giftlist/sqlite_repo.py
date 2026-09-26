@@ -70,8 +70,16 @@ CREATE TABLE IF NOT EXISTS reveals (
     target_person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     PRIMARY KEY (viewer_user_id, target_person_id)
 );
+CREATE TABLE IF NOT EXISTS gerry_events (
+    id      INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    trigger TEXT NOT NULL,
+    at      TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_people_household ON people(household_id);
 CREATE INDEX IF NOT EXISTS idx_items_person ON items(person_id, position);
+CREATE INDEX IF NOT EXISTS idx_gerry_events_user ON gerry_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_gerry_events_at ON gerry_events(at);
 CREATE INDEX IF NOT EXISTS idx_claims_user ON claims(user_id);
 CREATE INDEX IF NOT EXISTS idx_notices_user ON notices(user_id);
 """
@@ -337,3 +345,17 @@ class SqliteRepository:
     def is_revealed(self, viewer_user_id, target_person_id):
         return self._one("SELECT 1 FROM reveals WHERE viewer_user_id = ? AND target_person_id = ?",
                          viewer_user_id, target_person_id) is not None
+
+    # gerry events -------------------------------------------------------------
+
+    def add_gerry_event(self, user_id, trigger, at):
+        self._run("INSERT INTO gerry_events (user_id, trigger, at) VALUES (?, ?, ?)",
+                  user_id, trigger, at.isoformat())
+
+    def gerry_event_totals(self):
+        return [(r["user_id"], r["trigger"], r["n"]) for r in self._all(
+            "SELECT user_id, trigger, COUNT(*) AS n FROM gerry_events GROUP BY user_id, trigger")]
+
+    def gerry_events_since(self, since):
+        return [r["trigger"] for r in self._all(
+            "SELECT trigger FROM gerry_events WHERE at >= ?", since.isoformat())]

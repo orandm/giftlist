@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from flask import Blueprint, abort, flash, g, jsonify, redirect, request, send_from_directory, url_for
 
-from .. import access, accounts, claims, clock, gerry, linkpreview, lists
+from .. import access, accounts, badges, claims, clock, gerry, linkpreview, lists
 from ..errors import DomainError
 from ..money import InvalidAmount, parse_amount
 from .support import cfg, current_user, domain_action, fail, gerry_react, login_required, next_url, render, repo
@@ -25,7 +27,11 @@ def _everyone_anchor(item_id: int) -> str:
 @bp.get("/")
 @login_required
 def everyone():
-    return render("everyone.html", households=lists.everyone(repo(), current_user()), tab="everyone")
+    recent = repo().gerry_events_since(clock.now() - timedelta(days=7))
+    mood = gerry.mood_score(recent)
+    return render("everyone.html", households=lists.everyone(repo(), current_user()),
+                  badges=badges.leaderboard(repo()), mood_score=mood, mood_label=gerry.mood_label(mood),
+                  tab="everyone")
 
 
 @bp.get("/welcome")

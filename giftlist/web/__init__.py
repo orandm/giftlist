@@ -47,6 +47,7 @@ def create_app(config: Config | None = None, provider: IdentityProvider | None =
     app.jinja_env.globals["csrf_token"] = support.csrf_token
     app.jinja_env.globals["to_input"] = to_input
     app.jinja_env.globals["gerry_unclaimed_line"] = lambda: gerry.unclaimed_line(support.rng())
+    app.jinja_env.globals["gerry_countdown"] = lambda: gerry.countdown(local_today(), support.rng())
     app.context_processor(lambda: {"season_year": local_today().year})
 
     app.register_blueprint(routes_auth.bp)

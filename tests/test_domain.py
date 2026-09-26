@@ -3,7 +3,7 @@ import tempfile
 import threading
 import unittest
 
-from giftlist import accounts, claims, lists
+from giftlist import accounts, badges, claims, gerry, lists
 from giftlist.accounts import Invite
 from giftlist.errors import DomainError, NotAllowed, NotFound, OverClaimed
 from giftlist.models import Funding, NoticeKind
@@ -321,6 +321,23 @@ class TestOrdering(World):
                          ["B", "A", "Wool coat"])
         with self.assertRaises(DomainError):
             lists.reorder(self.repo, self.maire, self.p_maire.id, [a.id])
+
+
+class TestBadges(World):
+    def test_leaderboard_picks_the_highest_count_per_badge(self):
+        accounts.record_gerry_event(self.repo, self.ciaran, gerry.Trigger.TINY_CHIP_IN)
+        accounts.record_gerry_event(self.repo, self.ciaran, gerry.Trigger.TINY_CHIP_IN)
+        accounts.record_gerry_event(self.repo, self.aoife, gerry.Trigger.TINY_CHIP_IN)
+        accounts.record_gerry_event(self.repo, self.maire, gerry.Trigger.BANISHED)
+
+        board = {b.badge.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["cheapskate"].user_name, "Ciarán")
+        self.assertEqual(board["cheapskate"].count, 2)
+        self.assertEqual(board["ghost_whisperer"].user_name, "Máire")
+        self.assertNotIn("big_spender", board)  # nobody's triggered it
+
+    def test_empty_when_nobody_has_done_anything(self):
+        self.assertEqual(badges.leaderboard(self.repo), [])
 
 
 if __name__ == "__main__":

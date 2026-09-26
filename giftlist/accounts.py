@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from dataclasses import dataclass
 
-from . import access, claims, clock
+from . import access, claims, clock, gerry
 from .errors import DomainError, NotAllowed, NotFound
 from .models import Household, Person, User
 from .repository import Repository
@@ -262,3 +262,9 @@ def remember_gerry_line(repo: Repository, user: User, template: str) -> None:
     with repo.write():
         current = repo.user(user.id)
         repo.set_gerry(user.id, current.gerry_ghost, template)
+
+
+def record_gerry_event(repo: Repository, user: User, trigger: gerry.Trigger) -> None:
+    """Log that a real trigger condition fired, for badges and the mood meter."""
+    with repo.write():
+        repo.add_gerry_event(user.id, trigger.value, clock.now())
