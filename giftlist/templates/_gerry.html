@@ -1,4 +1,4 @@
-<div class="gerry{% if gerry.ghost %} ghost{% endif %}" data-gerry role="status" aria-live="polite">
+<div class="gerry{% if gerry.ghost %} ghost{% endif %}{% if me.punishment_mode %} cursed{% endif %}" data-gerry role="status" aria-live="polite">
 <img src="{{ url_for('static', filename='gerry-' ~ gerry.mood ~ '.svg') }}" alt="">
 <div class="bubble">
 <span class="who">{{ 'Ghost of Gerry' if gerry.ghost else 'Gerry' }}</span>
@@ -8,6 +8,13 @@
 <input type="hidden" name="next" value="{{ request.path }}">
 <button class="link">{{ 'Say sorry to Gerry' if gerry.ghost else 'Banish Gerry' }}</button>
 </form>
+{% if not me.punishment_mode %}
 <button type="button" class="x" data-close aria-label="Close">&#215;</button>
+{% endif %}
 </div>
 </div>
+{% if me.punishment_mode and me.gerry_ghost %}
+<img class="gerry-corner tl upside-down" src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="" aria-hidden="true">
+<img class="gerry-corner tr upside-down" src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="" aria-hidden="true">
+<img class="gerry-corner bl" src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="" aria-hidden="true">
+{% endif %}

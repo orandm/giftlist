@@ -12,6 +12,8 @@
 <div class="card"><div class="card-body">
 <p class="small">Post this in the family group chat. Anyone with it can sign up.</p>
 <div class="row"><input id="invite" type="text" readonly value="{{ invite_url }}" aria-label="Invite link"><button type="button" class="btn btn-outline" style="flex: 0" data-copy="invite">Copy</button></div>
+<p class="small">Won't touch Google? Send them this one instead -- they type their own name and email and get emailed a personal link.</p>
+<div class="row"><input id="magic-invite" type="text" readonly value="{{ magic_join_url }}" aria-label="No-Google sign-up link"><button type="button" class="btn btn-outline" style="flex: 0" data-copy="magic-invite">Copy</button></div>
 <form method="post" action="{{ url_for('admin.reset_invite') }}" data-confirm="Kill the old link and make a new one?">{{ csrf() }}
 <button class="btn btn-outline danger">Reset invite link</button></form>
 </div></div>
@@ -20,7 +22,7 @@
 <section class="section">
 <h2 class="section-title">Everyone signed up</h2>
 <div class="card scroll"><table class="table">
-<thead><tr><th>Name</th><th>Household</th><th>Joined</th><th>Last seen</th><th></th></tr></thead>
+<thead><tr><th>Name</th><th>Household</th><th>Joined</th><th>Last seen</th><th>Gerry</th><th></th></tr></thead>
 <tbody>
 {% for row in users %}{% set u = row.user %}
 <tr>
@@ -28,6 +30,15 @@
 <td>{{ row.household_name }}</td>
 <td>{{ u.created_at.day }} {{ u.created_at.strftime('%b') }}</td>
 <td>{{ (u.last_seen_at.day|string + ' ' + u.last_seen_at.strftime('%b')) if u.last_seen_at else 'Never' }}</td>
+<td>
+<form method="post" action="{{ url_for('admin.toggle_punishment', user_id=u.id) }}">{{ csrf() }}
+<input type="hidden" name="enabled" value="{{ '0' if u.punishment_mode else '1' }}">
+<button class="link{{ ' danger' if u.punishment_mode else '' }}">{{ 'Un-punish' if u.punishment_mode else 'Punish' }}</button></form>
+{% if row.magic_token %}
+<form method="post" action="{{ url_for('admin.regenerate_magic', user_id=u.id) }}" data-confirm="Kill {{ u.name }}'s old link and send a new one?">{{ csrf() }}
+<button class="link">Resend link</button></form>
+{% endif %}
+</td>
 <td>{% if u.id != me.id %}<form method="post" action="{{ url_for('admin.remove_user', user_id=u.id) }}" data-confirm="Remove {{ u.name }}? Their list and claims go too.">{{ csrf() }}<button class="link danger">Remove</button></form>{% endif %}</td>
 </tr>
 {% endfor %}

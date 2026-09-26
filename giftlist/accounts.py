@@ -27,6 +27,13 @@ def _name(text: str, what: str = "Name") -> str:
     return text[:60]
 
 
+def _email(text: str) -> str:
+    text = _CONTROL_CHARS.sub("", (text or "")).strip()
+    if not text or "@" not in text or len(text) > 254:
+        raise DomainError("That doesn't look like an email address.")
+    return text
+
+
 @dataclass(slots=True, frozen=True)
 class Invite:
     """The invite link a visitor arrived with, if any."""
@@ -60,6 +67,18 @@ def invite_is_valid(repo: Repository, invite: Invite) -> bool:
 
 # --- sign in -----------------------------------------------------------------
 
+def _create_user_and_household(repo: Repository, google_sub: str, email: str, name: str, invite: Invite) -> User:
+    """A brand-new account: joins the household behind an invite link, or gets its own."""
+    display = _name(name or email.split("@")[0])
+    with repo.write():
+        user = repo.add_user(google_sub, email, display, clock.now())
+        household = repo.household_by_invite(invite.household_token) if invite.household_token else None
+        if household is None:
+            household = repo.add_household(f"{display}'s household", _token())
+        repo.add_person(household.id, display, user.id)
+    return user
+
+
 def sign_in(repo: Repository, google_sub: str, email: str, name: str, invite: Invite, is_admin: bool) -> User:
     """Existing users just sign in. New users need an invite link (or to be the admin)."""
     existing = repo.user_by_sub(google_sub)
@@ -76,14 +95,54 @@ def sign_in(repo: Repository, google_sub: str, email: str, name: str, invite: In
     if not (is_admin or invite_is_valid(repo, invite)):
         raise NotAllowed("You need an invite link to get in. Ask whoever runs the family group chat.")
 
-    display = _name(name or email.split("@")[0])
+    return _create_user_and_household(repo, google_sub, email, name, invite)
+
+
+# --- magic-link sign-in (for the one person who won't touch Google OAuth) -----
+
+def resolve_invite(token: str) -> Invite:
+    """A magic-signup link carries one raw token that might be a site invite or a
+    household invite -- invite_is_valid() already checks both independently, so
+    trying it as both fields is safe: a real token can only ever satisfy one."""
+    return Invite(site_token=token, household_token=token)
+
+
+def enroll_magic(repo: Repository, name: str, email: str, invite_token: str) -> tuple[User, str]:
+    """Creates the account with a synthetic identity (mirrors the '/dev/login'
+    precedent) plus a personal magic-login token, and starts them in punishment
+    mode -- the price of skipping Google."""
+    invite = resolve_invite(invite_token)
+    if not invite_is_valid(repo, invite):
+        raise NotAllowed("That link doesn't work any more.")
+    email = _email(email)
     with repo.write():
-        user = repo.add_user(google_sub, email, display, clock.now())
-        household = repo.household_by_invite(invite.household_token) if invite.household_token else None
-        if household is None:
-            household = repo.add_household(f"{display}'s household", _token())
-        repo.add_person(household.id, display, user.id)
+        user = _create_user_and_household(repo, f"magic:{_token()}", email, name, invite)
+        token = secrets.token_urlsafe(32)
+        repo.set_magic_token(user.id, token)
+        repo.set_punishment_mode(user.id, True)
+        user = repo.user(user.id)
+    return user, token
+
+
+def magic_login(repo: Repository, token: str) -> User | None:
+    user = repo.user_by_magic_token(token)
+    if user is not None:
+        with repo.write():
+            repo.touch_user(user.id, clock.now())
+        user = repo.user(user.id)
     return user
+
+
+def regenerate_magic_link(repo: Repository, user_id: int) -> str:
+    token = secrets.token_urlsafe(32)
+    with repo.write():
+        repo.set_magic_token(user_id, token)
+    return token
+
+
+def set_punishment_mode(repo: Repository, user_id: int, enabled: bool) -> None:
+    with repo.write():
+        repo.set_punishment_mode(user_id, enabled)
 
 
 def start_visit(repo: Repository, user: User) -> User:
@@ -194,6 +253,7 @@ def _purge_in_household_claims(repo: Repository, household_id: int) -> None:
 class UserRow:
     user: User
     household_name: str
+    magic_token: str | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -208,7 +268,7 @@ def admin_overview(repo: Repository) -> tuple[list[UserRow], list[HouseholdRow]]
     for u in repo.all_users():
         p = repo.person_for_user(u.id)
         hh = repo.household(p.household_id) if p else None
-        users.append(UserRow(u, hh.name if hh else "None"))
+        users.append(UserRow(u, hh.name if hh else "None", repo.magic_token_for_user(u.id)))
     households = []
     for hh in repo.all_households():
         people = repo.people_in_household(hh.id)

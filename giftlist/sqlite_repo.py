@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS users (
     gerry_ghost        INTEGER NOT NULL DEFAULT 0,
     gerry_last_line    TEXT,
     visit_count        INTEGER NOT NULL DEFAULT 0,
-    visits_since_claim INTEGER NOT NULL DEFAULT 0
+    visits_since_claim INTEGER NOT NULL DEFAULT 0,
+    punishment_mode    INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS households (
     id           INTEGER PRIMARY KEY,
@@ -76,6 +77,10 @@ CREATE TABLE IF NOT EXISTS gerry_events (
     trigger TEXT NOT NULL,
     at      TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS magic_links (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    token   TEXT NOT NULL UNIQUE
+);
 CREATE INDEX IF NOT EXISTS idx_people_household ON people(household_id);
 CREATE INDEX IF NOT EXISTS idx_items_person ON items(person_id, position);
 CREATE INDEX IF NOT EXISTS idx_gerry_events_user ON gerry_events(user_id);
@@ -94,8 +99,17 @@ def connect(path: str) -> sqlite3.Connection:
     return conn
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str) -> None:
+    """Add a column to an already-deployed DB. SCHEMA covers fresh ones; this
+    covers the live one, where CREATE TABLE IF NOT EXISTS is a no-op."""
+    cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    _ensure_column(conn, "users", "punishment_mode", "INTEGER NOT NULL DEFAULT 0")
 
 
 def _dt(text: str | None) -> datetime | None:
@@ -104,7 +118,8 @@ def _dt(text: str | None) -> datetime | None:
 
 def _user(r) -> User:
     return User(r["id"], r["google_sub"], r["email"], r["name"], _dt(r["created_at"]), _dt(r["last_seen_at"]),
-                bool(r["gerry_ghost"]), r["gerry_last_line"], r["visit_count"], r["visits_since_claim"])
+                bool(r["gerry_ghost"]), r["gerry_last_line"], r["visit_count"], r["visits_since_claim"],
+                bool(r["punishment_mode"]))
 
 
 def _household(r) -> Household:
@@ -201,6 +216,22 @@ class SqliteRepository:
 
     def delete_user(self, user_id):
         self._run("DELETE FROM users WHERE id = ?", user_id)
+
+    def user_by_magic_token(self, token):
+        r = self._one("SELECT users.* FROM users JOIN magic_links ON magic_links.user_id = users.id "
+                      "WHERE magic_links.token = ?", token)
+        return _user(r) if r else None
+
+    def set_magic_token(self, user_id, token):
+        self._run("INSERT INTO magic_links (user_id, token) VALUES (?, ?) "
+                  "ON CONFLICT(user_id) DO UPDATE SET token = excluded.token", user_id, token)
+
+    def magic_token_for_user(self, user_id):
+        r = self._one("SELECT token FROM magic_links WHERE user_id = ?", user_id)
+        return r["token"] if r else None
+
+    def set_punishment_mode(self, user_id, enabled):
+        self._run("UPDATE users SET punishment_mode = ? WHERE id = ?", int(enabled), user_id)
 
     # households -----------------------------------------------------------
 

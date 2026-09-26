@@ -72,6 +72,38 @@ class TestSignIn(World):
             accounts.sign_in(self.repo, "g-y", "y@x.ie", "Y", old, False)
 
 
+class TestMagicLink(World):
+    def test_enroll_creates_account_and_defaults_punishment_mode_on(self):
+        user, token = accounts.enroll_magic(self.repo, "Kodi", "kodi@x.ie", self.site.site_token)
+        self.assertEqual(user.email, "kodi@x.ie")
+        self.assertTrue(user.punishment_mode)
+        self.assertIsNotNone(self.repo.person_for_user(user.id))
+        self.assertEqual(accounts.magic_login(self.repo, token).id, user.id)
+
+    def test_enroll_rejects_a_bad_invite_token(self):
+        with self.assertRaises(NotAllowed):
+            accounts.enroll_magic(self.repo, "Kodi", "kodi@x.ie", "not-a-real-token")
+
+    def test_enroll_rejects_a_bad_email(self):
+        with self.assertRaises(DomainError):
+            accounts.enroll_magic(self.repo, "Kodi", "not-an-email", self.site.site_token)
+
+    def test_magic_login_returns_none_for_a_bogus_token(self):
+        self.assertIsNone(accounts.magic_login(self.repo, "nonsense"))
+
+    def test_regenerating_kills_the_old_token(self):
+        user, old_token = accounts.enroll_magic(self.repo, "Kodi", "kodi@x.ie", self.site.site_token)
+        new_token = accounts.regenerate_magic_link(self.repo, user.id)
+        self.assertIsNone(accounts.magic_login(self.repo, old_token))
+        self.assertEqual(accounts.magic_login(self.repo, new_token).id, user.id)
+
+    def test_admin_can_toggle_punishment_mode_on_any_account(self):
+        accounts.set_punishment_mode(self.repo, self.maire.id, True)
+        self.assertTrue(self.repo.user(self.maire.id).punishment_mode)
+        accounts.set_punishment_mode(self.repo, self.maire.id, False)
+        self.assertFalse(self.repo.user(self.maire.id).punishment_mode)
+
+
 class TestVisibility(World):
     def test_everyone_hides_own_household(self):
         names = [hh.household.name for hh in lists.everyone(self.repo, self.ciaran)]

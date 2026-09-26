@@ -36,6 +36,7 @@ class User:
     gerry_last_line: str | None
     visit_count: int
     visits_since_claim: int
+    punishment_mode: bool  # admin-set; magic-link accounts default to it
 
 
 @dataclass(slots=True, frozen=True)

@@ -6,7 +6,7 @@ import secrets
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
-from .. import accounts
+from .. import accounts, mail
 from ..accounts import Invite
 from ..auth import AuthError, Identity
 from ..errors import DomainError, NotAllowed
@@ -91,6 +91,47 @@ def callback():
         flash(str(e), "error")
         return redirect(url_for("auth.login"))
     return _finish(identity)
+
+
+@bp.route("/join/magic/<token>", methods=["GET", "POST"])
+def join_magic(token: str):
+    """No-Google sign-up: the admin hands out this link, the visitor types their
+    own name/email, and gets emailed a personal permanent sign-in link."""
+    if current_user() is not None:
+        return redirect(url_for("pages.everyone"))
+    if not accounts.invite_is_valid(repo(), accounts.resolve_invite(token)):
+        return render_template("message.html", title="Who invited you?",
+                               message="That link doesn't work any more.", me=None, gerry=None)
+    if request.method == "GET":
+        return render_template("join_magic.html", token=token, me=None, gerry=None)
+
+    name = request.form.get("name", "")
+    email = request.form.get("email", "")
+    try:
+        user, magic_token = accounts.enroll_magic(repo(), name, email, token)
+    except (DomainError, NotAllowed) as e:
+        flash(str(e), "error")
+        return render_template("join_magic.html", token=token, me=None, gerry=None)
+
+    link = cfg().base_url + url_for("auth.magic_login", token=magic_token)
+    try:
+        mail.send_magic_link(cfg(), to=user.email, name=user.name, link=link)
+        return render_template("magic_sent.html", email=user.email, me=None, gerry=None)
+    except Exception:
+        return render_template("magic_sent.html", email=user.email, link=link, me=None, gerry=None)
+
+
+@bp.get("/magic/<token>")
+def magic_login(token: str):
+    if current_user() is not None:
+        return redirect(url_for("pages.everyone"))
+    user = accounts.magic_login(repo(), token)
+    if user is None:
+        return render_template("message.html", title="Who invited you?",
+                               message="That link doesn't work any more.", me=None, gerry=None)
+    is_new = user.visit_count == 0
+    log_in(user)
+    return redirect(url_for("pages.welcome" if is_new else "pages.everyone"))
 
 
 @bp.route("/dev/login", methods=["GET", "POST"])

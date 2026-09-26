@@ -233,6 +233,54 @@ class WebTests(unittest.TestCase):
         again.post("/gerry/sorry", {"next": "/"})
         self.assertIn("Apology accepted", again.text("/"))
 
+    # --- magic link + punishment mode --------------------------------------------------
+
+    def magic_token(self, url_or_path):
+        return re.search(r"/join/magic/([\w-]+)", url_or_path).group(1)
+
+    def test_magic_signup_flow_creates_account_in_punishment_mode(self):
+        admin = self.boss.text("/admin")
+        token = self.magic_token(admin)
+        anon = Browser(self.app)
+        self.assertEqual(anon.get(f"/join/magic/{token}").status_code, 200)
+        r = anon.post(f"/join/magic/{token}", {"name": "Kodi", "email": "kodi@x.ie"})
+        page = r.get_data(as_text=True)
+        # no SMTP configured in tests, so the link is shown on screen instead of emailed
+        link = re.search(r'value="(http://[^"]+/magic/[\w-]+)"', page).group(1)
+        r = anon.get(link.replace("http://localhost", ""))
+        self.assertIn("/welcome", r.headers["Location"])
+        page = anon.text("/")
+        self.assertIn('class="gerry cursed"', page)
+        self.assertIn("Google", page)
+        self.assertNotIn("data-close", page)
+
+    def test_magic_signup_rejects_a_dead_token(self):
+        r = Browser(self.app).get("/join/magic/not-a-real-token")
+        self.assertIn("doesn&#39;t work any more", r.get_data(as_text=True))
+
+    def test_admin_can_toggle_punishment_mode_on_a_normal_account(self):
+        mam = Browser(self.app)
+        mam.sign_in("mam@x.ie", self.invite)
+        admin = self.boss.text("/admin")
+        row = re.search(r"mam@x\.ie.*?/admin/users/(\d+)/punishment", admin, re.S)
+        uid = int(row.group(1))
+        self.boss.post(f"/admin/users/{uid}/punishment", {"enabled": "1"})
+        self.assertIn("Google", mam.text("/"))
+        self.boss.post(f"/admin/users/{uid}/punishment", {"enabled": "0"})
+        self.assertNotIn("Google", mam.text("/"))
+
+    def test_banishing_while_punished_spawns_corner_ghosts(self):
+        admin = self.boss.text("/admin")
+        token = self.magic_token(admin)
+        kodi = Browser(self.app)
+        kodi.get(f"/join/magic/{token}")
+        r = kodi.post(f"/join/magic/{token}", {"name": "Kodi", "email": "kodi@x.ie"})
+        link = re.search(r'value="(http://[^"]+/magic/[\w-]+)"', r.get_data(as_text=True)).group(1)
+        kodi.get(link.replace("http://localhost", ""))
+        self.assertNotIn("gerry-corner", kodi.text("/"))
+        kodi.post("/gerry/banish", {"next": "/"})
+        self.assertIn("gerry-corner", kodi.text("/"))
+
     # --- admin ------------------------------------------------------------------------
 
     def test_admin_is_hidden_from_others(self):

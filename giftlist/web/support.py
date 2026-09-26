@@ -163,6 +163,10 @@ def _page_load_popup() -> dict | None:
     user = current_user()
     if user is None:
         return None
+    if user.punishment_mode:
+        popup = gerry.punishment_popup(user.gerry_last_line, rng())
+        accounts.remember_gerry_line(repo(), user, popup.template)
+        return {"text": popup.text, "ghost": user.gerry_ghost, "mood": "ghost" if user.gerry_ghost else "grumpy"}
     queued = session.pop("gerry", None)
     if queued:
         return queued

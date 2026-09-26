@@ -41,6 +41,19 @@ class TestTriggers(unittest.TestCase):
         self.assertIsNone(gerry.visit_trigger(date(2026, 12, 3), 1))
 
 
+class TestPunishmentPopup(unittest.TestCase):
+    def test_always_returns_a_line_from_the_pool(self):
+        popup = gerry.punishment_popup(None, AlwaysRoll())
+        self.assertIn(popup.text, gerry.PUNISHMENT_LINES)
+        self.assertFalse(popup.ghost)
+        self.assertEqual(popup.template, popup.text)
+
+    def test_never_repeats_the_last_line_back_to_back(self):
+        last = gerry.PUNISHMENT_LINES[0]
+        for _ in range(20):
+            self.assertNotEqual(gerry.punishment_popup(last, random.Random()).text, last)
+
+
 class TestDecide(unittest.TestCase):
     ctx = gerry.context(owner="Máire", item="coat", amount_minor=200, price_minor=8000)
 

@@ -147,6 +147,23 @@ GHOST_LINES: tuple[str, ...] = (
     "{price}? I'm dead, not blind.",
 )
 
+PUNISHMENT_LINES: tuple[str, ...] = (
+    "Oh, you're back. Google Analytics says hello.",
+    "Every click here goes straight to Google. They send me a Christmas card.",
+    "I've been selling your wish list to Google Analytics all morning. Cha-ching.",
+    "Google Analytics called. They said thanks for the data.",
+    "Don't mind me, just forwarding your browsing habits to Google.",
+    "Fun fact: Google Analytics knows what you want for Christmas now. From me.",
+    "Google Analytics just texted. They want more detail on your wish list.",
+    "I'm basically a Google Analytics intern at this point. Unpaid. Thriving.",
+    "Your every click is a data point. I'm the one cashing the cheque.",
+    "Congratulations, you're a very engaged user. Google Analytics loves that.",
+    "I sold your browsing history for a candy cane. Worth it.",
+    "Somewhere, a Google server just got slightly happier because of you.",
+    "I've got a dashboard. It's just you, all day, every day.",
+    "Google Analytics knows you're reading this right now. So do I. Small world.",
+)
+
 UNCLAIMED_LINES: tuple[str, ...] = (
     "Nobody's claimed this. Tragic.",
     "Sitting here unloved. Same as every year.",
@@ -266,6 +283,14 @@ def decide(trigger: Trigger | None, ctx: dict[str, str], *, ghost: bool,
     if line is None:
         return None
     return Popup(line.format_map(ctx), ghost, line)
+
+
+def punishment_popup(last_line: str | None, rng: random.Random) -> Popup:
+    """For punishment-mode accounts: fires on every page load, no chance roll,
+    always from the fixed pool above -- never any other line."""
+    choices = [line for line in PUNISHMENT_LINES if line != last_line] or list(PUNISHMENT_LINES)
+    line = rng.choice(choices)
+    return Popup(line, False, line)
 
 
 # --- countdown ----------------------------------------------------------------

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf %}
+{% block header %}{{ hdr("No Google? No problem.", "Just your name and email. We'll send you a personal link to get back in.") }}{% endblock %}
+{% block content %}
+<form method="post" class="card"><div class="cane"></div><div class="card-body">
+{{ csrf() }}
+<label class="field">Name <input type="text" name="name" maxlength="60" required autofocus></label>
+<label class="field">Email <input type="email" name="email" maxlength="254" required></label>
+<button class="btn">Get my link</button>
+</div></form>
+{% endblock %}

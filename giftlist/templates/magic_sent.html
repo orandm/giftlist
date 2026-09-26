@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr %}
+{% block header %}{{ hdr("Almost there") }}{% endblock %}
+{% block content %}
+<div class="card"><div class="cane"></div><div class="card-body">
+{% if link %}
+<p>Couldn't send that to {{ email }} just now, so here's your link instead. Save it somewhere -- it's how you sign in from now on.</p>
+<div class="row"><input id="magic-link" type="text" readonly value="{{ link }}" aria-label="Your sign-in link"><button type="button" class="btn btn-outline" style="flex: 0" data-copy="magic-link">Copy</button></div>
+<a class="btn btn-block" href="{{ link }}">Take me in</a>
+{% else %}
+<p>Check {{ email }} for a personal sign-in link. Bookmark it -- that's how you get back in, no password needed.</p>
+{% endif %}
+</div></div>
+{% endblock %}

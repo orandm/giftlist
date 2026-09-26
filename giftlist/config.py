@@ -21,6 +21,11 @@ class Config:
     currency: str = "EUR"
     dev_login: bool = False        # local testing only: sign in without Google
     secure_cookies: bool = True
+    smtp_host: str = ""            # empty = not configured; magic-link email falls back to on-screen display
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    mail_from: str = ""
 
     @property
     def db_path(self) -> str:
@@ -52,4 +57,9 @@ class Config:
             currency=os.environ.get("CURRENCY", "EUR"),
             dev_login=dev,
             secure_cookies=_flag("SECURE_COOKIES", not dev),
+            smtp_host=os.environ.get("SMTP_HOST", ""),
+            smtp_port=int(os.environ.get("SMTP_PORT", "587")),
+            smtp_user=os.environ.get("SMTP_USER", ""),
+            smtp_password=os.environ.get("SMTP_PASSWORD", ""),
+            mail_from=os.environ.get("MAIL_FROM", ""),
         )
