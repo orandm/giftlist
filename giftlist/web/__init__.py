@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from flask import Flask
 
+from .. import gerry
 from ..auth import GoogleProvider, IdentityProvider
 from ..config import Config
 from ..clock import local_today
@@ -45,6 +46,7 @@ def create_app(config: Config | None = None, provider: IdentityProvider | None =
     app.jinja_env.filters["money"] = lambda minor: format_amount(minor, currency)
     app.jinja_env.globals["csrf_token"] = support.csrf_token
     app.jinja_env.globals["to_input"] = to_input
+    app.jinja_env.globals["gerry_unclaimed_line"] = lambda: gerry.unclaimed_line(support.rng())
     app.context_processor(lambda: {"season_year": local_today().year})
 
     app.register_blueprint(routes_auth.bp)

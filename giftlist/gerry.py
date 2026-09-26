@@ -149,6 +149,24 @@ GHOST_LINES: tuple[str, ...] = (
     "{price}? I'm dead, not blind.",
 )
 
+UNCLAIMED_LINES: tuple[str, ...] = (
+    "Nobody's claimed this. Tragic.",
+    "Sitting here unloved. Same as every year.",
+    "Zero claims. Gerry's not surprised.",
+    "Still up for grabs. Nobody's grabbing.",
+    "Not a single taker. Ouch.",
+    "This one's gathering dust.",
+    "Crickets. Actual crickets.",
+    "Unclaimed and unloved. Do something about it.",
+    "Nobody wants the responsibility, apparently.",
+    "Waiting. Still waiting.",
+)
+
+
+def unclaimed_line(rng: random.Random) -> str:
+    """A rude aside shown on an item nobody's claimed yet."""
+    return rng.choice(UNCLAIMED_LINES)
+
 
 @dataclass(slots=True, frozen=True)
 class Popup:

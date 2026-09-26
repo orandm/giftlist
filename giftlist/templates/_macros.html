@@ -32,7 +32,7 @@
   {% endif %}
   {% if it.is_bought and v.remaining_minor > 0 %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
 {% else %}
-  <p class="status">Nobody's claimed this. Tragic.</p>
+  <p class="status">{{ gerry_unclaimed_line() }}</p>
 {% endif %}
 {%- endmacro %}
 
