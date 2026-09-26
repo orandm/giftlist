@@ -9,5 +9,8 @@ My list</a>
 <a href="{{ url_for('pages.my_buys') }}"{% if tab == 'buys' %} aria-current="page"{% endif %}>
 <span class="count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 13H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>{% if notice_count %}<b>{{ notice_count }}<span class="sr-only"> updates</span></b>{% endif %}</span>
 My buys</a>
+<a href="{{ url_for('pages.badges_page') }}"{% if tab == 'badges' %} aria-current="page"{% endif %}>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a2 2 0 0 0 2 3.5"/><path d="M17 5h3a2 2 0 0 1-2 3.5"/></svg>
+Badges</a>
 </nav>
 </div>

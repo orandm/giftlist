@@ -250,6 +250,14 @@ def new_season(repo: Repository) -> None:
         repo.delete_all_notices()
 
 
+def clear_badges(repo: Repository) -> None:
+    """Wipe the badge leaderboard: the gerry_events log and each user's browsing streak.
+    Item/dependent-based badges reset naturally whenever lists do (e.g. a new season)."""
+    with repo.write():
+        repo.delete_all_gerry_events()
+        repo.reset_all_visits_since_claim()
+
+
 # --- Gerry's per-user state ---------------------------------------------------
 
 def set_gerry_ghost(repo: Repository, user: User, ghost: bool) -> User:

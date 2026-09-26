@@ -324,20 +324,50 @@ class TestOrdering(World):
 
 
 class TestBadges(World):
-    def test_leaderboard_picks_the_highest_count_per_badge(self):
+    def test_event_badges_pick_the_highest_count(self):
         accounts.record_gerry_event(self.repo, self.ciaran, gerry.Trigger.TINY_CHIP_IN)
         accounts.record_gerry_event(self.repo, self.ciaran, gerry.Trigger.TINY_CHIP_IN)
         accounts.record_gerry_event(self.repo, self.aoife, gerry.Trigger.TINY_CHIP_IN)
         accounts.record_gerry_event(self.repo, self.maire, gerry.Trigger.BANISHED)
 
-        board = {b.badge.key: b for b in badges.leaderboard(self.repo)}
-        self.assertEqual(board["cheapskate"].user_name, "Ciarán")
-        self.assertEqual(board["cheapskate"].count, 2)
-        self.assertEqual(board["ghost_whisperer"].user_name, "Máire")
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["cheapskate"].subject_name, "Ciarán")
+        self.assertEqual(board["cheapskate"].detail, "2 times")
+        self.assertEqual(board["ghost_whisperer"].subject_name, "Máire")
         self.assertNotIn("big_spender", board)  # nobody's triggered it
 
-    def test_empty_when_nobody_has_done_anything(self):
-        self.assertEqual(badges.leaderboard(self.repo), [])
+    def test_window_shopper_picks_highest_visits_since_claim(self):
+        for _ in range(3):
+            accounts.start_visit(self.repo, self.maire)
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["window_shopper"].subject_name, "Máire")
+        self.assertEqual(board["window_shopper"].detail, "3 visits")
+
+    def test_item_based_badges(self):
+        lists.add_item(self.repo, self.aoife, self.p_aoife.id, "Sticker", None, None, 100, None, False)
+        lists.add_item(self.repo, self.aoife, self.p_aoife.id, "Pencil", None, None, 100, None, False)
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["wish_list_hoarder"].subject_name, "Aoife")
+        self.assertEqual(board["wish_list_hoarder"].detail, "2 items")
+        self.assertEqual(board["easy_to_please"].subject_name, "Aoife")  # cheapest total (coat/lego cost more)
+        self.assertEqual(board["serial_sulker"].subject_name, "Máire")  # only the coat has really_want set
+
+    def test_big_family_energy_picks_the_household_with_more_dependents(self):
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["big_family_energy"].subject_name, "Ciarán's household")
+        self.assertEqual(board["big_family_energy"].detail, "1 dependent")
+
+    def test_empty_leaderboard_on_a_bare_repo(self):
+        self.assertEqual(badges.leaderboard(make_repo()), [])
+
+    def test_clear_badges_wipes_events_and_visit_streaks_not_lists(self):
+        accounts.record_gerry_event(self.repo, self.ciaran, gerry.Trigger.TINY_CHIP_IN)
+        accounts.start_visit(self.repo, self.maire)
+        accounts.clear_badges(self.repo)
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertNotIn("cheapskate", board)
+        self.assertNotIn("window_shopper", board)
+        self.assertIn("big_family_energy", board)  # untouched -- comes from live household data
 
 
 if __name__ == "__main__":

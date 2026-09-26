@@ -57,6 +57,15 @@ def remove_user(user_id: int):
     return redirect(url_for("admin.overview"))
 
 
+@bp.post("/badges/clear")
+@login_required
+@admin_required
+def clear_badges():
+    accounts.clear_badges(repo())
+    flash("Badge leaderboard wiped. Fresh start.", "ok")
+    return redirect(url_for("admin.overview"))
+
+
 @bp.post("/season")
 @login_required
 @admin_required

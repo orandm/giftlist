@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr %}
+{% block header %}{{ hdr("Hall of Shame", "Whoever's racked up the most of something. Wear it with pride, or don't.") }}{% endblock %}
+{% block content %}
+{% if not holders %}
+<div class="card"><div class="cane"></div><div class="card-body">
+<p>Nobody's earned a badge yet. Give it time.</p>
+</div></div>
+{% else %}
+<section class="section">
+<div class="card"><div class="badges-list">
+{% for b in holders %}
+<div class="badge-item">
+<span class="badge-icon" aria-hidden="true">{{ b.icon }}</span>
+<div class="badge-info">
+<span class="item-title">{{ b.label }}</span>
+<span class="note">{{ b.subject_name }} &mdash; {{ b.blurb }} ({{ b.detail }})</span>
+</div>
+</div>
+{% endfor %}
+</div></div>
+</section>
+{% endif %}
+{% endblock %}

@@ -193,6 +193,9 @@ class SqliteRepository:
     def reset_visits_since_claim(self, user_id):
         self._run("UPDATE users SET visits_since_claim = 0 WHERE id = ?", user_id)
 
+    def reset_all_visits_since_claim(self):
+        self._run("UPDATE users SET visits_since_claim = 0")
+
     def set_gerry(self, user_id, ghost, last_line):
         self._run("UPDATE users SET gerry_ghost = ?, gerry_last_line = ? WHERE id = ?", int(ghost), last_line, user_id)
 
@@ -250,6 +253,10 @@ class SqliteRepository:
     def delete_person(self, person_id):
         self._run("DELETE FROM people WHERE id = ?", person_id)
 
+    def dependents_count_by_household(self):
+        return [(r["household_id"], r["n"]) for r in self._all(
+            "SELECT household_id, COUNT(*) AS n FROM people WHERE user_id IS NULL GROUP BY household_id")]
+
     # items ----------------------------------------------------------------
 
     def add_item(self, person_id, title, url, image, price_minor, note, really_want, at):
@@ -284,6 +291,11 @@ class SqliteRepository:
     def delete_all_items(self):
         self._run("DELETE FROM claims")
         self._run("DELETE FROM items")
+
+    def item_stats_by_person(self):
+        return [(r["person_id"], r["n"], r["total"], r["sulk"]) for r in self._all(
+            "SELECT person_id, COUNT(*) AS n, SUM(price_minor) AS total, SUM(really_want) AS sulk "
+            "FROM items GROUP BY person_id")]
 
     # claims ---------------------------------------------------------------
 
@@ -355,3 +367,6 @@ class SqliteRepository:
     def gerry_event_totals(self):
         return [(r["user_id"], r["trigger"], r["n"]) for r in self._all(
             "SELECT user_id, trigger, COUNT(*) AS n FROM gerry_events GROUP BY user_id, trigger")]
+
+    def delete_all_gerry_events(self):
+        self._run("DELETE FROM gerry_events")

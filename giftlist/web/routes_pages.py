@@ -25,8 +25,15 @@ def _everyone_anchor(item_id: int) -> str:
 @bp.get("/")
 @login_required
 def everyone():
-    return render("everyone.html", households=lists.everyone(repo(), current_user()),
-                  badges=badges.leaderboard(repo()), tab="everyone")
+    return render("everyone.html", households=lists.everyone(repo(), current_user()), tab="everyone")
+
+
+# --- Badges ----------------------------------------------------------------------
+
+@bp.get("/badges")
+@login_required
+def badges_page():
+    return render("badges.html", holders=badges.leaderboard(repo()), tab="badges")
 
 
 @bp.get("/welcome")
