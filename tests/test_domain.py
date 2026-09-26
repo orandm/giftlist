@@ -5,7 +5,7 @@ import unittest
 
 from giftlist import accounts, claims, lists
 from giftlist.accounts import Invite
-from giftlist.errors import DomainError, NotAllowed, OverClaimed
+from giftlist.errors import DomainError, NotAllowed, NotFound, OverClaimed
 from giftlist.models import Funding, NoticeKind
 from giftlist.sqlite_repo import SqliteRepository, connect, init_db
 
@@ -216,6 +216,16 @@ class TestRemoval(World):
         self.assertEqual(n.kind, NoticeKind.ITEM_REMOVED)
         self.assertTrue(n.params["bought"])
         self.assertEqual(claims.my_claims(self.repo, self.ciaran), [])
+
+    def test_admin_renames_any_household(self):
+        hh, _ = accounts.my_household(self.repo, self.ciaran)
+        accounts.admin_rename_household(self.repo, hh.id, "The Ciarán Clan")
+        renamed, _ = accounts.my_household(self.repo, self.aoife)
+        self.assertEqual(renamed.name, "The Ciarán Clan")
+
+    def test_admin_rename_household_rejects_missing(self):
+        with self.assertRaises(NotFound):
+            accounts.admin_rename_household(self.repo, 999999, "Ghosts")
 
     def test_admin_removes_user_frees_their_claims_and_notifies(self):
         claims.claim(self.repo, self.ciaran, self.coat.id, 4000)

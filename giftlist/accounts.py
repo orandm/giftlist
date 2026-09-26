@@ -214,6 +214,13 @@ def admin_overview(repo: Repository) -> tuple[list[UserRow], list[HouseholdRow]]
     return users, households
 
 
+def admin_rename_household(repo: Repository, household_id: int, name: str) -> None:
+    with repo.write():
+        if repo.household(household_id) is None:
+            raise NotFound("That household's gone.")
+        repo.rename_household(household_id, _name(name, "Household name"))
+
+
 def remove_user(repo: Repository, user_id: int) -> None:
     """Delete a user's list and claims. If nobody's left to run their household,
     its dependents go too. Everyone affected gets a notice."""

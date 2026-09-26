@@ -38,7 +38,11 @@
 <h2 class="section-title">Households</h2>
 <div class="card scroll"><table class="table">
 <thead><tr><th>Household</th><th>App users</th><th>Others</th></tr></thead>
-<tbody>{% for h in households %}<tr><td>{{ h.household.name }}</td><td>{{ h.users }}</td><td>{{ h.dependents }}</td></tr>{% endfor %}</tbody>
+<tbody>{% for h in households %}<tr>
+<td><form method="post" action="{{ url_for('admin.rename_household', household_id=h.household.id) }}" class="row">{{ csrf() }}
+<input type="text" name="name" value="{{ h.household.name }}" aria-label="Rename {{ h.household.name }}" maxlength="60" required>
+<button class="btn btn-outline" style="flex: 0">Rename</button></form></td>
+<td>{{ h.users }}</td><td>{{ h.dependents }}</td></tr>{% endfor %}</tbody>
 </table></div>
 </section>
 

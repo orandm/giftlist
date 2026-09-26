@@ -31,6 +31,17 @@ def reset_invite():
     return redirect(url_for("admin.overview"))
 
 
+@bp.post("/households/<int:household_id>/rename")
+@login_required
+@admin_required
+def rename_household(household_id: int):
+    try:
+        accounts.admin_rename_household(repo(), household_id, request.form.get("name", ""))
+    except DomainError as e:
+        flash(str(e), "error")
+    return redirect(url_for("admin.overview"))
+
+
 @bp.post("/users/<int:user_id>/remove")
 @login_required
 @admin_required
