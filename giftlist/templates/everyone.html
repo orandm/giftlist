@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import hdr, item_card %}
 {% block header %}
-{% set countdown_days, countdown_line, countdown_sprite, countdown_emoji = gerry_countdown() %}
+{% set countdown_days, countdown_line, countdown_sprite = gerry_countdown() %}
 {% call hdr("The Nice List", "Christmas " ~ season_year ~ ". Snoop on everyone's list except your own.") %}
 <div class="hdr-chips">
 <span class="chip">
@@ -16,10 +16,7 @@
 </div>
 <div class="hdr-gerry">
 <div class="hdr-gerry-bubble">{{ countdown_line }}</div>
-<span class="hdr-gerry-img-wrap">
 <img class="hdr-gerry-img" src="{{ url_for('static', filename='gerry-' ~ countdown_sprite ~ '.svg') }}" alt="Gerry">
-<span class="hdr-gerry-emoji">{{ countdown_emoji }}</span>
-</span>
 </div>
 {% endcall %}
 {% endblock %}

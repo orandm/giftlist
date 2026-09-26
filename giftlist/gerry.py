@@ -315,21 +315,20 @@ def _countdown_band(days: int) -> str:
     return "past"
 
 
-# sprite (matches the gerry-*.svg files) + emoji, per band -- angrier the closer it gets
-COUNTDOWN_MOOD: dict[str, tuple[str, str]] = {
-    "chill": ("smug", "\U0001F60F"),
-    "getting_real": ("eyeroll", "\U0001F610"),
-    "urgent": ("grumpy", "\U0001F620"),
-    "panic": ("grumpy", "\U0001F621"),
-    "today": ("grumpy", "\U0001F621"),
-    "past": ("smug", "\U0001F60C"),
+# sprite (matches the gerry-*.svg files), per band -- angrier the closer it gets
+COUNTDOWN_MOOD: dict[str, str] = {
+    "chill": "smug",
+    "getting_real": "eyeroll",
+    "urgent": "grumpy",
+    "panic": "grumpy",
+    "today": "grumpy",
+    "past": "smug",
 }
 
 
-def countdown(today: date, rng: random.Random) -> tuple[int, str, str, str]:
+def countdown(today: date, rng: random.Random) -> tuple[int, str, str]:
     """Days left until the 25th (negative once it's past), a line that gets ruder as it counts down,
-    and the sprite + emoji to show him with -- he gets visibly angrier the closer Christmas gets."""
+    and the sprite to show him with -- he gets visibly angrier the closer Christmas gets."""
     days = (date(today.year, 12, 25) - today).days
     band = _countdown_band(days)
-    sprite, emoji = COUNTDOWN_MOOD[band]
-    return days, rng.choice(COUNTDOWN_LINES[band]), sprite, emoji
+    return days, rng.choice(COUNTDOWN_LINES[band]), COUNTDOWN_MOOD[band]

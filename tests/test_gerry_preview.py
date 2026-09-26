@@ -97,33 +97,33 @@ class TestDecide(unittest.TestCase):
 class TestCountdown(unittest.TestCase):
     def test_days_remaining_bands_and_mood_gets_angrier(self):
         rng = AlwaysRoll()
-        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 1), rng)
+        days, line, sprite = gerry.countdown(date(2026, 12, 1), rng)
         self.assertEqual(days, 24)
         self.assertIn(line, gerry.COUNTDOWN_LINES["chill"])
-        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["chill"])
+        self.assertEqual(sprite, gerry.COUNTDOWN_MOOD["chill"])
 
-        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 20), rng)
+        days, line, sprite = gerry.countdown(date(2026, 12, 20), rng)
         self.assertEqual(days, 5)
         self.assertIn(line, gerry.COUNTDOWN_LINES["urgent"])
-        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["urgent"])
+        self.assertEqual(sprite, gerry.COUNTDOWN_MOOD["urgent"])
 
-        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 24), rng)
+        days, line, sprite = gerry.countdown(date(2026, 12, 24), rng)
         self.assertEqual(days, 1)
         self.assertIn(line, gerry.COUNTDOWN_LINES["panic"])
-        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["panic"])
+        self.assertEqual(sprite, gerry.COUNTDOWN_MOOD["panic"])
 
-        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 25), rng)
+        days, line, sprite = gerry.countdown(date(2026, 12, 25), rng)
         self.assertEqual(days, 0)
         self.assertIn(line, gerry.COUNTDOWN_LINES["today"])
-        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["today"])
+        self.assertEqual(sprite, gerry.COUNTDOWN_MOOD["today"])
 
-        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 27), rng)
+        days, line, sprite = gerry.countdown(date(2026, 12, 27), rng)
         self.assertEqual(days, -2)
         self.assertIn(line, gerry.COUNTDOWN_LINES["past"])
-        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["past"])
+        self.assertEqual(sprite, gerry.COUNTDOWN_MOOD["past"])
 
     def test_sprite_mood_only_uses_real_artwork(self):
-        for sprite, _ in gerry.COUNTDOWN_MOOD.values():
+        for sprite in gerry.COUNTDOWN_MOOD.values():
             self.assertIn(sprite, {"grumpy", "smug", "eyeroll"})
 
 

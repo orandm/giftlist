@@ -51,12 +51,7 @@ p { margin: 0; }
   max-width: 140px; padding: 6px 10px; background: #fff; color: var(--ink); border-radius: 12px 12px 2px 12px;
   font-size: 12px; font-weight: 700; line-height: 1.25; box-shadow: 2px 2px 0 var(--ink);
 }
-.hdr-gerry-img-wrap { position: relative; flex-shrink: 0; }
-.hdr-gerry-img { width: 50px; height: auto; display: block; }
-.hdr-gerry-emoji {
-  position: absolute; right: -4px; bottom: -2px; width: 22px; height: 22px; border-radius: 999px;
-  background: #fff; box-shadow: 0 0 0 2px var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center;
-}
+.hdr-gerry-img { width: 50px; height: auto; display: block; flex-shrink: 0; }
 .trim { display: block; }
 .trim::before, .trim::after { content: ""; display: block; height: 6px; background: repeating-linear-gradient(90deg, #F6E3A4 0 3px, var(--gold) 3px 6px, var(--gold-lt) 6px 9px, #8C6516 9px 10px); }
 .knit { height: 18px; background-color: var(--green); background-image: linear-gradient(135deg, #fff 25%, transparent 25%), linear-gradient(225deg, #fff 25%, transparent 25%); background-size: 18px 18px; }
