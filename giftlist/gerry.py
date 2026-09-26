@@ -15,12 +15,12 @@ from enum import Enum
 from .money import format_amount
 
 # thresholds
-TINY_SHARE = 0.25          # chip-in under this fraction of the price
-CHEAP_MINOR = 20_00        # claiming something under €20
-SPLIT_CHEAP_MINOR = 40_00  # splitting something under €40
+TINY_SHARE = 0.50          # chip-in under this fraction of the price
+CHEAP_MINOR = 10_00        # claiming something under €10
+SPLIT_CHEAP_MINOR = 30_00  # splitting something under €30
 PRICEY_MINOR = 75_00       # adding a wish over €75
-LONG_LIST = 8              # items on one list
-BROWSE_VISITS = 3          # visits in a row without claiming anything
+LONG_LIST = 5              # items on one list
+BROWSE_VISITS = 2          # visits in a row without claiming anything
 
 # frequency
 NORMAL_CHANCE = 0.30
@@ -176,7 +176,7 @@ class Popup:
 # --- what counts as a trigger --------------------------------------------------
 
 def _is_late(today: date) -> bool:
-    return today.month == 12 and 20 <= today.day <= 24
+    return today.month == 12 and 10 <= today.day <= 24
 
 
 def claim_trigger(price_minor: int, amount_minor: int, remaining_before_minor: int,

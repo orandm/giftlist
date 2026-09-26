@@ -20,7 +20,7 @@
   <div class="money"><span>€</span><input id="amount" name="amount" inputmode="decimal" value="{{ to_input(mine.amount_minor) }}" required></div>
   <button class="btn btn-block">Update my share</button>
   </form>
-  <form method="post" action="{{ url_for('pages.withdraw', item_id=it.id) }}" data-confirm="Back out of this one?">
+  <form method="post" action="{{ url_for('pages.withdraw', item_id=it.id) }}">
   {{ csrf() }}<input type="hidden" name="next" value="{{ back }}">
   <button class="btn btn-outline danger btn-block">Back out</button>
   </form>

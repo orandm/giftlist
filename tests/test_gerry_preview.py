@@ -24,11 +24,11 @@ class TestTriggers(unittest.TestCase):
 
     def test_claim_priority(self):
         self.assertEqual(gerry.claim_trigger(8000, 200, 8000, 200, False, self.D), Trigger.TINY_CHIP_IN)
-        self.assertEqual(gerry.claim_trigger(3000, 1500, 3000, 1500, False, self.D), Trigger.SPLIT_CHEAP)
-        self.assertEqual(gerry.claim_trigger(1500, 1500, 1500, 1500, False, self.D), Trigger.CHEAP_CLAIM)
+        self.assertEqual(gerry.claim_trigger(2500, 1500, 2500, 1500, False, self.D), Trigger.SPLIT_CHEAP)
+        self.assertEqual(gerry.claim_trigger(800, 800, 800, 800, False, self.D), Trigger.CHEAP_CLAIM)
         self.assertEqual(gerry.claim_trigger(8000, 8000, 8000, 8000, True, self.D), Trigger.SULK_AVERTED)
         self.assertEqual(gerry.claim_trigger(8000, 8000, 8000, 8000, False, date(2026, 12, 22)), Trigger.LATE_CLAIM)
-        self.assertIsNone(gerry.claim_trigger(8000, 8000, 8000, 8000, False, self.D))
+        self.assertIsNone(gerry.claim_trigger(8000, 8000, 8000, 8000, False, date(2026, 12, 5)))
 
     def test_other_triggers(self):
         self.assertEqual(gerry.share_change_trigger(4000, 0), Trigger.BACKING_OUT)
