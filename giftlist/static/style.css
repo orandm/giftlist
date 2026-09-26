@@ -40,7 +40,7 @@ p { margin: 0; }
 }
 .hdr::before { content: ""; position: absolute; inset: 0 0 auto; height: 44px; background: url("lights.svg") 0 0 / 130px 44px repeat-x; }
 .hdr h1 { font-family: var(--xmas); font-weight: 700; font-size: 46px; line-height: 1; color: var(--cream-gold); text-shadow: 0 3px 0 var(--red-dk); }
-.hdr p { margin-top: 6px; font-size: 17px; color: #FDE3E7; max-width: 32em; }
+.hdr p { margin-top: 6px; font-size: 17px; color: #FDE3E7; max-width: 32em; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 .trim { display: block; }
 .trim::before, .trim::after { content: ""; display: block; height: 6px; background: repeating-linear-gradient(90deg, #F6E3A4 0 3px, var(--gold) 3px 6px, var(--gold-lt) 6px 9px, #8C6516 9px 10px); }
 .knit { height: 18px; background-color: var(--green); background-image: linear-gradient(135deg, #fff 25%, transparent 25%), linear-gradient(225deg, #fff 25%, transparent 25%); background-size: 18px 18px; }
@@ -186,6 +186,7 @@ input[type=text], input[type=url], input[type=email], input:not([type]) {
 .signin { min-height: 100vh; display: flex; flex-direction: column; background: url("snow.svg") 0 40px / 320px 200px repeat, var(--red); color: #fff; position: relative; }
 .signin::before { content: ""; position: absolute; inset: 0 0 auto; height: 44px; background: url("lights.svg") 0 0 / 130px 44px repeat-x; }
 .signin .hero { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 80px 28px 32px; }
+.signin .hero p { color: #FDE3E7; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 .signin h1 { font-family: var(--xmas); font-weight: 700; font-size: 58px; line-height: 0.95; color: var(--cream-gold); text-shadow: 0 4px 0 var(--red-dk); }
 .signin .panel { background: #fff; color: var(--ink); padding: 26px 24px calc(44px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
 .google { min-height: 60px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px solid var(--ink); border-radius: 14px; color: var(--ink); background: #fff; text-decoration: none; font-size: 19px; font-weight: 700; }
