@@ -1,26 +1,23 @@
 {% extends "base.html" %}
 {% from "_macros.html" import hdr, item_card %}
-{% block header %}{{ hdr("The Nice List", "Christmas " ~ season_year ~ ". Snoop on everyone's list except your own.") }}{% endblock %}
-{% block content %}
+{% block header %}
 {% set countdown_days, countdown_line = gerry_countdown() %}
-<div class="card"><div class="cane"></div><div class="card-body">
-{% if countdown_days > 0 %}
-<span class="big-number">{{ countdown_days }}</span>
-<span class="muted">day{{ '' if countdown_days == 1 else 's' }} to Christmas.</span>
-{% elif countdown_days == 0 %}
-<span class="big-number">Today</span>
-{% else %}
-<span class="muted">Christmas was {{ -countdown_days }} day{{ '' if countdown_days == -1 else 's' }} ago.</span>
-{% endif %}
-<p class="small">{{ countdown_line }}</p>
-</div></div>
-
-<div class="card"><div class="card-body">
-<p class="small">Gerry's mood: <strong>{{ mood_label }}</strong></p>
-<div class="mood-bar {{ 'furious' if mood_score >= 80 else 'grumpy' if mood_score >= 50 else '' }}">
-<span style="width: {{ mood_score }}%"></span></div>
-</div></div>
-
+{% call hdr("The Nice List", "Christmas " ~ season_year ~ ". Snoop on everyone's list except your own.") %}
+<div class="hdr-chips">
+<span class="chip" title="{{ countdown_line }}">
+{%- if countdown_days > 0 -%}
+&#127876; {{ countdown_days }} day{{ '' if countdown_days == 1 else 's' }} left
+{%- elif countdown_days == 0 -%}
+&#127876; It's today!
+{%- else -%}
+&#127876; {{ -countdown_days }} day{{ '' if countdown_days == -1 else 's' }} past
+{%- endif -%}
+</span>
+<span class="chip">{{ mood_emoji }} Gerry's {{ mood_label|lower }}</span>
+</div>
+{% endcall %}
+{% endblock %}
+{% block content %}
 {% if badges %}
 <section class="section">
 <h2 class="section-title">Hall of Shame</h2>

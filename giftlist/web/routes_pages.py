@@ -29,8 +29,9 @@ def _everyone_anchor(item_id: int) -> str:
 def everyone():
     recent = repo().gerry_events_since(clock.now() - timedelta(days=7))
     mood = gerry.mood_score(recent)
+    mood_label = gerry.mood_label(mood)
     return render("everyone.html", households=lists.everyone(repo(), current_user()),
-                  badges=badges.leaderboard(repo()), mood_score=mood, mood_label=gerry.mood_label(mood),
+                  badges=badges.leaderboard(repo()), mood_label=mood_label, mood_emoji=gerry.MOOD_EMOJI[mood_label],
                   tab="everyone")
 
 

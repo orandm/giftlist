@@ -336,6 +336,14 @@ MOOD_LABELS: tuple[tuple[int, str], ...] = (
     (0, "Suspiciously delighted"),
 )
 
+MOOD_EMOJI: dict[str, str] = {
+    "Furious": "\U0001F621",
+    "Grumpy": "\U0001F624",
+    "Tolerable": "\U0001F610",
+    "Almost pleasant": "\U0001F642",
+    "Suspiciously delighted": "\U0001F607",
+}
+
 
 def mood_score(recent_triggers: list[str]) -> int:
     """0 (delighted) to 100 (furious), from what's happened in the last week. Starts at a grumpy baseline."""
