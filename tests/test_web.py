@@ -204,12 +204,6 @@ class WebTests(unittest.TestCase):
         again.post("/gerry/sorry", {"next": "/"})
         self.assertIn("Apology accepted", again.text("/"))
 
-    def test_gerry_leaves_newcomers_alone(self):
-        mam = Browser(self.app)
-        mam.sign_in("mam@x.ie", self.invite)
-        self.add_item(mam, "Espresso machine", "349")
-        self.assertNotIn('class="gerry"', mam.text("/my-list"))
-
     # --- admin ------------------------------------------------------------------------
 
     def test_admin_is_hidden_from_others(self):

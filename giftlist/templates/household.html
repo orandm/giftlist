@@ -47,11 +47,11 @@ See {{ p.name }}'s wishlist on Everyone, and claim on it like any other househol
 </div></div>
 </section>
 
-{% if people|length > 1 %}
+{% if people|length > 1 and not people|selectattr('is_dependent')|list %}
 <section class="section">
 <h2 class="section-title">Leave this household</h2>
 <div class="card"><div class="card-body">
-<p class="small">Split off into your own, empty household. Anything you added stays yours. Dependents stay behind.</p>
+<p class="small">Split off into your own, empty household. Anything you added stays yours.</p>
 <form method="post" action="{{ url_for('pages.leave_household') }}" data-confirm="Leave {{ household.name }} and start your own household?">{{ csrf() }}
 <button class="btn btn-outline danger">Leave household</button></form>
 </div></div>

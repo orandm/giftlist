@@ -145,12 +145,15 @@ def join_household(repo: Repository, user: User, invite_token: str) -> Household
 
 
 def leave_household(repo: Repository, user: User) -> Household:
-    """Split off into your own new household. Dependents stay behind with the other manager(s)."""
+    """Split off into your own new household. Blocked while it has any dependents in it,
+    so their lists never end up orphaned -- move or remove them first."""
     with repo.write():
         me = access.own_person(repo, user)
         others = repo.people_in_household(me.household_id)
-        if not any(not p.is_dependent and p.id != me.id for p in others):
-            raise NotAllowed("You're the only one running this household. Dependents would be left with nobody.")
+        if any(p.is_dependent for p in others):
+            raise NotAllowed("This household has dependents in it. Remove them, or ask the admin, before leaving.")
+        if not any(p.id != me.id for p in others):
+            raise NotAllowed("You're already the only one here.")
         new_household = repo.add_household(f"{me.name}'s household", _token())
         repo.move_person(me.id, new_household.id)
         return new_household

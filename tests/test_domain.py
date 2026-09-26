@@ -234,13 +234,23 @@ class TestRemoval(World):
         self.assertEqual(n.params["item"], "Lego")
 
     def test_leave_household_splits_off_solo(self):
-        accounts.leave_household(self.repo, self.ciaran)
-        _, new_people = accounts.my_household(self.repo, self.ciaran)
-        self.assertEqual([p.name for p in new_people], ["Ciarán"])
-        _, old_people = accounts.my_household(self.repo, self.aoife)
-        self.assertEqual({p.name for p in old_people}, {"Aoife", "Liam"})
+        accounts.leave_household(self.repo, self.sean)
+        _, new_people = accounts.my_household(self.repo, self.sean)
+        self.assertEqual([p.name for p in new_people], ["Seán"])
+        _, old_people = accounts.my_household(self.repo, self.maire)
+        self.assertEqual([p.name for p in old_people], ["Máire"])
 
     def test_cannot_leave_if_sole_manager(self):
+        boss = accounts.sign_in(self.repo, "g-boss", "boss@x.ie", "Boss", Invite(), True)
+        with self.assertRaises(NotAllowed):
+            accounts.leave_household(self.repo, boss)  # already the only one there
+
+    def test_cannot_leave_household_with_dependents_even_with_a_co_manager(self):
+        # Ciarán's household has Aoife as a co-manager, but also Liam, a dependent
+        with self.assertRaises(NotAllowed):
+            accounts.leave_household(self.repo, self.ciaran)
+
+    def test_cannot_leave_if_sole_manager_with_a_dependent(self):
         boss = accounts.sign_in(self.repo, "g-boss", "boss@x.ie", "Boss", Invite(), True)
         accounts.add_dependent(self.repo, boss, "Kid")
         with self.assertRaises(NotAllowed):

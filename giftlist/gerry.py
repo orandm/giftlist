@@ -18,16 +18,16 @@ from .money import format_amount
 TINY_SHARE = 0.25          # chip-in under this fraction of the price
 CHEAP_MINOR = 20_00        # claiming something under €20
 SPLIT_CHEAP_MINOR = 40_00  # splitting something under €40
-PRICEY_MINOR = 150_00      # adding a wish over €150
+PRICEY_MINOR = 75_00       # adding a wish over €75
 LONG_LIST = 8              # items on one list
 BROWSE_VISITS = 3          # visits in a row without claiming anything
 
 # frequency
-NORMAL_CHANCE = 1 / 3
+NORMAL_CHANCE = 1 / 2
 GHOST_CHANCE = 2 / 3
 GHOST_HAUNT_CHANCE = 1 / 4  # plain page loads while banished
-NORMAL_PER_VISIT = 1
-GHOST_PER_VISIT = 3
+NORMAL_PER_VISIT = 3
+GHOST_PER_VISIT = 9
 
 
 class Trigger(Enum):
@@ -193,7 +193,7 @@ def context(currency: str = "EUR", *, owner: str | None = None, item: str | None
 
 
 def decide(trigger: Trigger | None, ctx: dict[str, str], *, ghost: bool, shown_this_visit: int,
-           visit_count: int, last_line: str | None, rng: random.Random,
+           last_line: str | None, rng: random.Random,
            chance: float | None = None) -> Popup | None:
     if trigger is None:
         return None
@@ -202,8 +202,6 @@ def decide(trigger: Trigger | None, ctx: dict[str, str], *, ghost: bool, shown_t
         return Popup(LINES[trigger][0], True, LINES[trigger][0])
     if trigger is Trigger.APOLOGY:
         return Popup(LINES[trigger][0], False, LINES[trigger][0])
-    if visit_count <= 1:
-        return None  # leave newcomers alone
     if shown_this_visit >= (GHOST_PER_VISIT if ghost else NORMAL_PER_VISIT):
         return None
     if rng.random() >= (chance if chance is not None else (GHOST_CHANCE if ghost else NORMAL_CHANCE)):

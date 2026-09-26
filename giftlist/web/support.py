@@ -152,7 +152,7 @@ def gerry_react(trigger: gerry.Trigger | None, ctx: dict[str, str] | None = None
     """Called after an action. Queues a popup for the next page, maybe."""
     user = current_user()
     popup = gerry.decide(trigger, ctx or {}, ghost=user.gerry_ghost, shown_this_visit=g.gerry_shown or 0,
-                         visit_count=user.visit_count, last_line=user.gerry_last_line, rng=rng())
+                         last_line=user.gerry_last_line, rng=rng())
     if popup is not None:
         accounts.remember_gerry_line(repo(), user, popup.template)
         mood = "ghost" if popup.ghost else MOODS.get(trigger, "grumpy")
@@ -166,8 +166,7 @@ def _page_load_popup() -> dict | None:
     queued = session.pop("gerry", None)
     if queued:
         return queued
-    kw = dict(ghost=user.gerry_ghost, shown_this_visit=g.gerry_shown or 0, visit_count=user.visit_count,
-              last_line=user.gerry_last_line, rng=rng())
+    kw = dict(ghost=user.gerry_ghost, shown_this_visit=g.gerry_shown or 0, last_line=user.gerry_last_line, rng=rng())
     popup = None
     if g.new_visit:
         trigger = gerry.visit_trigger(clock.local_today(), user.visits_since_claim)
