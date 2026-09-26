@@ -30,10 +30,10 @@
   <div class="bar"><span style="width: {{ [100, v.claimed_minor * 100 // it.price_minor]|min }}%"></span></div>
   <p class="status">{{ v.claimed_minor|money }} of {{ it.price_minor|money }} covered. {{ who_paid(v, me) }}</p>
   {% endif %}
-  {% if it.is_bought and v.remaining_minor > 0 %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
-{% else %}
+{% elif not it.is_bought %}
   <p class="status">{{ gerry_unclaimed_line() }}</p>
 {% endif %}
+{% if it.is_bought and v.remaining_minor > 0 %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
 {%- endmacro %}
 
 {% macro item_card(v, me, idx) -%}

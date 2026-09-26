@@ -14,7 +14,7 @@ from ..errors import DomainError
 from ..models import User
 from ..sqlite_repo import SqliteRepository, connect
 
-VISIT_COOKIE = "gl_visit"  # browser-session cookie: how many Gerry popups this visit
+VISIT_COOKIE = "gl_visit"  # browser-session cookie: this visit has already been counted
 
 MOODS = {
     gerry.Trigger.MARKED_BOUGHT: "smug",
@@ -128,18 +128,17 @@ def domain_action(default_next: str, action):
 # --- Gerry ------------------------------------------------------------------------
 
 def start_request() -> None:
-    g.gerry_shown = int(request.cookies.get(VISIT_COOKIE, "0") or 0) if VISIT_COOKIE in request.cookies else None
     user = current_user()
     g.new_visit = False
-    if user is not None and g.gerry_shown is None and request.method == "GET" and not request.path.startswith(("/static", "/img")):
+    if user is not None and VISIT_COOKIE not in request.cookies and request.method == "GET" \
+            and not request.path.startswith(("/static", "/img")):
         g.user = accounts.start_visit(repo(), user)
         g.new_visit = True
-        g.gerry_shown = 0
 
 
 def finish_request(resp):
-    if getattr(g, "gerry_shown", None) is not None and current_user() is not None:
-        resp.set_cookie(VISIT_COOKIE, str(g.gerry_shown), httponly=True, samesite="Lax",
+    if g.get("new_visit") and current_user() is not None:
+        resp.set_cookie(VISIT_COOKIE, "1", httponly=True, samesite="Lax",
                         secure=cfg().secure_cookies)  # no expiry: ends with the browser session
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["X-Content-Type-Options"] = "nosniff"
@@ -151,8 +150,7 @@ def finish_request(resp):
 def gerry_react(trigger: gerry.Trigger | None, ctx: dict[str, str] | None = None) -> None:
     """Called after an action. Queues a popup for the next page, maybe."""
     user = current_user()
-    popup = gerry.decide(trigger, ctx or {}, ghost=user.gerry_ghost, shown_this_visit=g.gerry_shown or 0,
-                         last_line=user.gerry_last_line, rng=rng())
+    popup = gerry.decide(trigger, ctx or {}, ghost=user.gerry_ghost, last_line=user.gerry_last_line, rng=rng())
     if popup is not None:
         accounts.remember_gerry_line(repo(), user, popup.template)
         mood = "ghost" if popup.ghost else MOODS.get(trigger, "grumpy")
@@ -166,7 +164,7 @@ def _page_load_popup() -> dict | None:
     queued = session.pop("gerry", None)
     if queued:
         return queued
-    kw = dict(ghost=user.gerry_ghost, shown_this_visit=g.gerry_shown or 0, last_line=user.gerry_last_line, rng=rng())
+    kw = dict(ghost=user.gerry_ghost, last_line=user.gerry_last_line, rng=rng())
     popup = None
     if g.new_visit:
         trigger = gerry.visit_trigger(clock.local_today(), user.visits_since_claim)
@@ -182,8 +180,6 @@ def _page_load_popup() -> dict | None:
 def render(template: str, **ctx):
     """render_template plus Gerry, the tab bar state and the current user."""
     popup = _page_load_popup()
-    if popup is not None:
-        g.gerry_shown = (g.gerry_shown or 0) + 1
     user = current_user()
     notice_count = len(repo().notices_for_user(user.id)) if user else 0
     return render_template(template, gerry=popup, me=user, is_admin=is_admin(user), notice_count=notice_count, **ctx)

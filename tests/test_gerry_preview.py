@@ -45,7 +45,7 @@ class TestDecide(unittest.TestCase):
     ctx = gerry.context(owner="Máire", item="coat", amount_minor=200, price_minor=8000)
 
     def d(self, trigger=Trigger.TINY_CHIP_IN, **kw):
-        args = dict(ghost=False, shown_this_visit=0, last_line=None, rng=AlwaysRoll())
+        args = dict(ghost=False, last_line=None, rng=AlwaysRoll())
         args.update(kw)
         return gerry.decide(trigger, self.ctx, **args)
 
@@ -54,11 +54,9 @@ class TestDecide(unittest.TestCase):
         self.assertFalse(p.ghost)
         self.assertNotIn("{", p.text)
 
-    def test_caps_per_visit(self):
-        self.assertIsNotNone(self.d(shown_this_visit=2))
-        self.assertIsNone(self.d(shown_this_visit=3))
-        self.assertIsNotNone(self.d(ghost=True, shown_this_visit=8))
-        self.assertIsNone(self.d(ghost=True, shown_this_visit=9))
+    def test_no_cap_on_repeat_appearances(self):
+        for _ in range(20):
+            self.assertIsNotNone(self.d())
 
     def test_chance(self):
         self.assertIsNone(self.d(rng=NeverRoll()))
@@ -68,23 +66,25 @@ class TestDecide(unittest.TestCase):
         self.assertTrue(p.ghost)
         self.assertIn(p.template, gerry.GHOST_LINES)
 
+    def test_ghost_always_lands(self):
+        self.assertIsNotNone(self.d(ghost=True, rng=NeverRoll()))
+
     def test_banish_and_apology_always_land(self):
         self.assertTrue(self.d(Trigger.BANISHED, rng=NeverRoll()).ghost)
-        self.assertFalse(self.d(Trigger.APOLOGY, shown_this_visit=9, rng=NeverRoll()).ghost)
+        self.assertFalse(self.d(Trigger.APOLOGY, rng=NeverRoll()).ghost)
 
     def test_no_repeat_and_skips_unfillable(self):
         rng = AlwaysRoll(1)  # passes every chance; choice() still varies with the seed
         seen, last = set(), None
         for _ in range(30):
-            p = gerry.decide(Trigger.TINY_CHIP_IN, self.ctx, ghost=False, shown_this_visit=0,
+            p = gerry.decide(Trigger.TINY_CHIP_IN, self.ctx, ghost=False,
                              last_line=last, rng=rng)
             self.assertNotEqual(p.template, last)
             last = p.template
             seen.add(p.template)
         self.assertGreater(len(seen), 1)
         # a line needing {count} is never used without a count
-        p = gerry.decide(Trigger.LONG_LIST, {}, ghost=False, shown_this_visit=0,
-                         last_line=None, rng=AlwaysRoll())
+        p = gerry.decide(Trigger.LONG_LIST, {}, ghost=False, last_line=None, rng=AlwaysRoll())
         self.assertEqual(p.text, "Leave some Christmas for the rest of us.")
 
     def test_every_line_formats(self):

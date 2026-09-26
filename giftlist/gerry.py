@@ -23,11 +23,9 @@ LONG_LIST = 8              # items on one list
 BROWSE_VISITS = 3          # visits in a row without claiming anything
 
 # frequency
-NORMAL_CHANCE = 1 / 2
-GHOST_CHANCE = 2 / 3
+NORMAL_CHANCE = 0.30
+GHOST_CHANCE = 1.0
 GHOST_HAUNT_CHANCE = 1 / 4  # plain page loads while banished
-NORMAL_PER_VISIT = 3
-GHOST_PER_VISIT = 9
 
 
 class Trigger(Enum):
@@ -250,18 +248,17 @@ def context(currency: str = "EUR", *, owner: str | None = None, item: str | None
     return ctx
 
 
-def decide(trigger: Trigger | None, ctx: dict[str, str], *, ghost: bool, shown_this_visit: int,
+def decide(trigger: Trigger | None, ctx: dict[str, str], *, ghost: bool,
            last_line: str | None, rng: random.Random,
            chance: float | None = None) -> Popup | None:
+    """No cap on how often he shows up in a visit -- just a per-trigger chance,
+    except the big ones (banish/apology replies), which always land."""
     if trigger is None:
         return None
-    # replies to pressing his buttons always land
     if trigger is Trigger.BANISHED:
         return Popup(LINES[trigger][0], True, LINES[trigger][0])
     if trigger is Trigger.APOLOGY:
         return Popup(LINES[trigger][0], False, LINES[trigger][0])
-    if shown_this_visit >= (GHOST_PER_VISIT if ghost else NORMAL_PER_VISIT):
-        return None
     if rng.random() >= (chance if chance is not None else (GHOST_CHANCE if ghost else NORMAL_CHANCE)):
         return None
     lines = GHOST_LINES if ghost else LINES.get(trigger, ())

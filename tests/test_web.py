@@ -147,6 +147,19 @@ class WebTests(unittest.TestCase):
         r = mam.text(f"/items/{coat}/buy")  # can't open your own item's buy page
         self.assertNotIn("Chip in", r)
 
+    def test_full_withdraw_after_bought_shows_shortfall_not_unclaimed(self):
+        mam = Browser(self.app)
+        mam.sign_in("mam@x.ie", self.invite)
+        self.add_item(mam, "Chicken Treats", "3.79")
+        item = self.item_id(self.boss, "Chicken Treats")
+        self.boss.post(f"/items/{item}/claim", {"amount": "rest"})
+        self.boss.post(f"/items/{item}/bought")
+        self.boss.post(f"/items/{item}/withdraw")
+        page = self.boss.text("/")
+        self.assertIn("Bought, but", page)
+        self.assertIn("short", page)
+        self.assertNotIn("Tragic", page)
+
     def test_owner_deleting_claimed_item_notifies(self):
         mam = Browser(self.app)
         mam.sign_in("mam@x.ie", self.invite)
