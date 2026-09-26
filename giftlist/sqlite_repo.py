@@ -65,6 +65,11 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS reveals (
+    viewer_user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    PRIMARY KEY (viewer_user_id, target_person_id)
+);
 CREATE INDEX IF NOT EXISTS idx_people_household ON people(household_id);
 CREATE INDEX IF NOT EXISTS idx_items_person ON items(person_id, position);
 CREATE INDEX IF NOT EXISTS idx_claims_user ON claims(user_id);
@@ -314,3 +319,21 @@ class SqliteRepository:
     def set_setting(self, key, value):
         self._run("INSERT INTO settings (key, value) VALUES (?, ?) "
                   "ON CONFLICT(key) DO UPDATE SET value = excluded.value", key, value)
+
+    # reveals ----------------------------------------------------------------
+
+    def set_reveal(self, viewer_user_id, target_person_id, revealed):
+        if revealed:
+            self._run("INSERT OR IGNORE INTO reveals (viewer_user_id, target_person_id) VALUES (?, ?)",
+                      viewer_user_id, target_person_id)
+        else:
+            self._run("DELETE FROM reveals WHERE viewer_user_id = ? AND target_person_id = ?",
+                      viewer_user_id, target_person_id)
+
+    def revealed_person_ids(self, viewer_user_id):
+        return {r["target_person_id"] for r in self._all(
+            "SELECT target_person_id FROM reveals WHERE viewer_user_id = ?", viewer_user_id)}
+
+    def is_revealed(self, viewer_user_id, target_person_id):
+        return self._one("SELECT 1 FROM reveals WHERE viewer_user_id = ? AND target_person_id = ?",
+                         viewer_user_id, target_person_id) is not None

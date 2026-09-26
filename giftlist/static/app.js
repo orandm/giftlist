@@ -104,4 +104,9 @@
       if (!confirm(f.dataset.confirm)) e.preventDefault();
     });
   });
+
+  // --- checkboxes that submit their form the moment you tick them --------------
+  document.querySelectorAll("[data-auto-submit]").forEach(function (cb) {
+    cb.addEventListener("change", function () { cb.form.submit(); });
+  });
 })();

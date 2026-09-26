@@ -144,6 +144,33 @@ def join_household(repo: Repository, user: User, invite_token: str) -> Household
         return target
 
 
+def leave_household(repo: Repository, user: User) -> Household:
+    """Split off into your own new household. Dependents stay behind with the other manager(s)."""
+    with repo.write():
+        me = access.own_person(repo, user)
+        others = repo.people_in_household(me.household_id)
+        if not any(not p.is_dependent and p.id != me.id for p in others):
+            raise NotAllowed("You're the only one running this household. Dependents would be left with nobody.")
+        new_household = repo.add_household(f"{me.name}'s household", _token())
+        repo.move_person(me.id, new_household.id)
+        return new_household
+
+
+def set_reveal(repo: Repository, user: User, target_person_id: int, revealed: bool) -> None:
+    """Opt to see and claim on a household-mate's list on Everyone, as if they were another household."""
+    with repo.write():
+        target = repo.person(target_person_id)
+        if target is None or target.user_id == user.id or target.is_dependent \
+                or not access.is_in_my_household(repo, user, target):
+            raise NotAllowed("That's not someone you can reveal.")
+        repo.set_reveal(user.id, target_person_id, revealed)
+        if not revealed:
+            for item in repo.items_for_person(target_person_id):
+                for c in repo.claims_for_item(item.id):
+                    if c.user_id == user.id:
+                        claims.drop_claim_with_notices(repo, c, user)
+
+
 def _purge_in_household_claims(repo: Repository, household_id: int) -> None:
     """After someone joins, nobody may hold claims on their own household's lists."""
     people = repo.people_in_household(household_id)

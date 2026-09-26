@@ -22,6 +22,11 @@ def is_in_my_household(repo: Repository, user: User, person: Person) -> bool:
     return person.household_id == household_id_of(repo, user)
 
 
+def is_revealed(repo: Repository, user: User, person: Person) -> bool:
+    """A household-mate (never a dependent) you've chosen to see and claim on."""
+    return not person.is_dependent and repo.is_revealed(user.id, person.id)
+
+
 def can_edit(repo: Repository, user: User, person: Person) -> bool:
     """Your own list, and dependents in your household. Not a co-manager's list."""
     if person.user_id == user.id:
@@ -37,10 +42,10 @@ def require_editable(repo: Repository, user: User, person_id: int) -> Person:
 
 
 def require_claimable(repo: Repository, user: User, person_id: int) -> Person:
-    """Claims are for other households only. Your own lot stay a surprise."""
+    """Claims are for other households only, unless you've revealed that person to yourself."""
     person = repo.person(person_id)
     if person is None:
         raise NotFound("That person's gone.")
-    if is_in_my_household(repo, user, person):
+    if is_in_my_household(repo, user, person) and not is_revealed(repo, user, person):
         raise NotAllowed("Nice try. You can't see what's happening with your own household's lists.")
     return person

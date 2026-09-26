@@ -266,9 +266,11 @@ def dismiss(notice_id: int):
 @bp.get("/household")
 @login_required
 def household():
-    hh, people = accounts.my_household(repo(), current_user())
+    user = current_user()
+    hh, people = accounts.my_household(repo(), user)
     join_url = cfg().base_url + url_for("auth.household_invite", token=hh.invite_token)
-    return render("household.html", household=hh, people=people, join_url=join_url, tab="list")
+    revealed = repo().revealed_person_ids(user.id)
+    return render("household.html", household=hh, people=people, join_url=join_url, revealed=revealed, tab="list")
 
 
 @bp.post("/household/rename")
@@ -277,6 +279,26 @@ def rename_household():
     def act():
         accounts.rename_household(repo(), current_user(), request.form.get("name", ""))
         return redirect(url_for("pages.household"))
+    return domain_action(url_for("pages.household"), act)
+
+
+@bp.post("/household/leave")
+@login_required
+def leave_household():
+    def act():
+        accounts.leave_household(repo(), current_user())
+        return redirect(url_for("pages.household"))
+    return domain_action(url_for("pages.household"), act)
+
+
+@bp.post("/people/<int:person_id>/reveal")
+@login_required
+def toggle_reveal(person_id: int):
+    def act():
+        user = current_user()
+        currently = person_id in repo().revealed_person_ids(user.id)
+        accounts.set_reveal(repo(), user, person_id, not currently)
+        return redirect(next_url(url_for("pages.household")))
     return domain_action(url_for("pages.household"), act)
 
 

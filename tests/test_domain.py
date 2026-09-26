@@ -96,6 +96,30 @@ class TestVisibility(World):
         self.assertEqual([(c.name, c.amount_minor) for c in v.contributions], [("Ciarán", 3000)])
         self.assertEqual(v.funding, Funding.PARTIAL)
 
+    def test_reveal_lets_you_see_and_claim_a_housemates_list(self):
+        scarf = lists.add_item(self.repo, self.aoife, self.p_aoife.id, "Scarf", None, None, 3000, None, False)
+        self.assertNotIn("Aoife", [p.person.name for hh in lists.everyone(self.repo, self.ciaran) for p in hh.people])
+        with self.assertRaises(NotAllowed):
+            claims.claim(self.repo, self.ciaran, scarf.id, 3000)
+
+        accounts.set_reveal(self.repo, self.ciaran, self.p_aoife.id, True)
+        self.assertIn("Aoife", [p.person.name for hh in lists.everyone(self.repo, self.ciaran) for p in hh.people])
+        claims.claim(self.repo, self.ciaran, scarf.id, 3000)  # no longer raises
+
+    def test_unrevealing_drops_your_claim(self):
+        scarf = lists.add_item(self.repo, self.aoife, self.p_aoife.id, "Scarf", None, None, 3000, None, False)
+        accounts.set_reveal(self.repo, self.ciaran, self.p_aoife.id, True)
+        claims.claim(self.repo, self.ciaran, scarf.id, 3000)
+        accounts.set_reveal(self.repo, self.ciaran, self.p_aoife.id, False)
+        self.assertEqual(self.repo.claims_for_item(scarf.id), [])
+
+    def test_cannot_reveal_self_or_dependent(self):
+        p_ciaran = self.repo.person_for_user(self.ciaran.id)
+        with self.assertRaises(NotAllowed):
+            accounts.set_reveal(self.repo, self.ciaran, p_ciaran.id, True)
+        with self.assertRaises(NotAllowed):
+            accounts.set_reveal(self.repo, self.ciaran, self.liam.id, True)
+
 
 class TestClaims(World):
     def test_split_and_full(self):
@@ -208,6 +232,19 @@ class TestRemoval(World):
         self.assertIsNone(self.repo.person(self.liam.id))
         [n] = claims.notices(self.repo, self.maire)
         self.assertEqual(n.params["item"], "Lego")
+
+    def test_leave_household_splits_off_solo(self):
+        accounts.leave_household(self.repo, self.ciaran)
+        _, new_people = accounts.my_household(self.repo, self.ciaran)
+        self.assertEqual([p.name for p in new_people], ["Ciarán"])
+        _, old_people = accounts.my_household(self.repo, self.aoife)
+        self.assertEqual({p.name for p in old_people}, {"Aoife", "Liam"})
+
+    def test_cannot_leave_if_sole_manager(self):
+        boss = accounts.sign_in(self.repo, "g-boss", "boss@x.ie", "Boss", Invite(), True)
+        accounts.add_dependent(self.repo, boss, "Kid")
+        with self.assertRaises(NotAllowed):
+            accounts.leave_household(self.repo, boss)
 
     def test_joining_household_purges_claims_inside_it(self):
         site = self.site

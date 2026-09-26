@@ -99,15 +99,16 @@ def move(repo: Repository, user: User, item_id: int, delta: int) -> None:
 
 
 def everyone(repo: Repository, user: User) -> list[HouseholdView]:
-    """Every household except the viewer's own, with claims."""
+    """Every other household, plus any household-mates you've chosen to reveal to yourself."""
     mine = access.household_id_of(repo, user)
+    revealed = repo.revealed_person_ids(user.id)
     out = []
     for hh in repo.all_households():
-        if hh.id == mine:
-            continue
+        candidates = [p for p in repo.people_in_household(hh.id) if p.id in revealed] \
+            if hh.id == mine else repo.people_in_household(hh.id)
         people = tuple(
             PersonView(p, tuple(claims.item_view(repo, i) for i in repo.items_for_person(p.id)))
-            for p in repo.people_in_household(hh.id))
+            for p in candidates)
         if people:
             out.append(HouseholdView(hh, people))
     return out
