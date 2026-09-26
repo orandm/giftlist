@@ -284,6 +284,19 @@ def admin_rename_household(repo: Repository, household_id: int, name: str) -> No
         repo.rename_household(household_id, _name(name, "Household name"))
 
 
+def admin_rename_user(repo: Repository, user_id: int, name: str) -> None:
+    """Fixes a user's display name everywhere -- their account and their wishlist
+    owner name -- for when someone types their full name instead of a first name."""
+    with repo.write():
+        if repo.user(user_id) is None:
+            raise NotFound("That user's already gone.")
+        clean = _name(name)
+        repo.rename_user(user_id, clean)
+        person = repo.person_for_user(user_id)
+        if person is not None:
+            repo.rename_person(person.id, clean)
+
+
 def remove_user(repo: Repository, user_id: int) -> None:
     """Delete a user's list and claims. If nobody's left to run their household,
     its dependents go too. Everyone affected gets a notice."""

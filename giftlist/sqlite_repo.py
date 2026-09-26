@@ -201,6 +201,9 @@ class SqliteRepository:
     def touch_user(self, user_id, at):
         self._run("UPDATE users SET last_seen_at = ? WHERE id = ?", at.isoformat(), user_id)
 
+    def rename_user(self, user_id, name):
+        self._run("UPDATE users SET name = ? WHERE id = ?", name, user_id)
+
     def start_visit(self, user_id):
         self._run("UPDATE users SET visit_count = visit_count + 1, visits_since_claim = visits_since_claim + 1 "
                   "WHERE id = ?", user_id)

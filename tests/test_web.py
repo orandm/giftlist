@@ -300,6 +300,17 @@ class WebTests(unittest.TestCase):
         mam.sign_in("mam@x.ie", self.invite)
         self.assertEqual(mam.get("/admin").status_code, 404)
 
+    def test_admin_renames_a_user(self):
+        mam = Browser(self.app)
+        mam.sign_in("mam@x.ie", self.invite)
+        self.add_item(mam, "Coat", "80")
+        admin = self.boss.text("/admin")
+        uid = int(re.search(r'/admin/users/(\d+)/rename"[^>]*>.{0,150}?value="Mam"', admin, re.S).group(1))
+        self.boss.post(f"/admin/users/{uid}/rename", {"name": "M"})
+        self.assertIn('value="M" aria-label="Rename M"', self.boss.text("/admin"))
+        self.assertIn("Coat", mam.text("/my-list"))  # their own list still works after the rename
+        self.assertIn('<span class="person-name">M</span>', self.boss.text("/"))  # new first name shown to others
+
     def test_admin_remove_user_and_reset_invite_and_season(self):
         mam = Browser(self.app)
         mam.sign_in("mam@x.ie", self.invite)

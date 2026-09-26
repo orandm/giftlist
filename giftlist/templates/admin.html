@@ -26,7 +26,11 @@
 <tbody>
 {% for row in users %}{% set u = row.user %}
 <tr>
-<td><strong>{{ u.name }}</strong><br><span class="muted">{{ u.email }}</span>{% if u.gerry_ghost %}<br><span class="muted">Haunted</span>{% endif %}</td>
+<td>
+<form method="post" action="{{ url_for('admin.rename_user', user_id=u.id) }}" class="row">{{ csrf() }}
+<input type="text" name="name" value="{{ u.name }}" aria-label="Rename {{ u.name }}" maxlength="60" required>
+<button class="btn btn-outline" style="flex: 0">Rename</button></form>
+<span class="muted">{{ u.email }}</span>{% if u.gerry_ghost %}<br><span class="muted">Haunted</span>{% endif %}</td>
 <td>{{ row.household_name }}</td>
 <td>{{ u.created_at.day }} {{ u.created_at.strftime('%b') }}</td>
 <td>{{ (u.last_seen_at.day|string + ' ' + u.last_seen_at.strftime('%b')) if u.last_seen_at else 'Never' }}</td>

@@ -279,6 +279,15 @@ class TestRemoval(World):
         with self.assertRaises(NotFound):
             accounts.admin_rename_household(self.repo, 999999, "Ghosts")
 
+    def test_admin_renames_a_user_and_their_person_together(self):
+        accounts.admin_rename_user(self.repo, self.ciaran.id, "CJ")
+        self.assertEqual(self.repo.user(self.ciaran.id).name, "CJ")
+        self.assertEqual(self.repo.person_for_user(self.ciaran.id).name, "CJ")
+
+    def test_admin_rename_user_rejects_missing(self):
+        with self.assertRaises(NotFound):
+            accounts.admin_rename_user(self.repo, 999999, "Ghost")
+
     def test_admin_removes_user_frees_their_claims_and_notifies(self):
         claims.claim(self.repo, self.ciaran, self.coat.id, 4000)
         claims.claim(self.repo, self.aoife, self.coat.id, 4000)
