@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf, coverage %}
+{% block header %}{{ hdr("My Buys", "The damage so far.") }}{% endblock %}
+{% block content %}
+{% if notices %}
+<section class="section" aria-label="Updates">
+{% for n in notices %}
+{% set p = n.params %}
+<div class="notice{% if n.kind.value == 'item_removed' %} bad{% endif %}">
+<p>
+{% if n.kind.value == 'item_removed' %}
+  {% if p.bought %}<strong>Awkward.</strong> {{ p.owner }} took “{{ p.item }}” off their list, and it was already bought. You'd put in {{ p.amount_minor|money }}. Might be time for a quiet word.
+  {% else %}<strong>Heads up.</strong> {{ p.owner }} took “{{ p.item }}” off their list. Your {{ p.amount_minor|money }} claim's gone, so don't buy it.{% endif %}
+{% elif n.kind.value == 'share_changed' %}
+  <strong>{{ p.who }}</strong> changed their share of “{{ p.item }}” for {{ p.owner }} from {{ p.old_minor|money }} to {{ p.new_minor|money }}.
+  {% if p.remaining_minor %}{{ p.remaining_minor|money }} still needed.{% endif %}
+  {% if p.bought and p.remaining_minor %}It's already bought, so someone's out of pocket.{% endif %}
+{% else %}
+  <strong>{{ p.who }}</strong> backed out of “{{ p.item }}” for {{ p.owner }}. Classic.
+  {% if p.remaining_minor %}{{ p.remaining_minor|money }} still needed.{% endif %}
+{% endif %}
+</p>
+<div class="actions">
+{% if p.item_id %}<a class="btn btn-green" href="{{ url_for('pages.everyone') }}#item-{{ p.item_id }}">See the item</a>{% endif %}
+<form method="post" action="{{ url_for('pages.dismiss', notice_id=n.id) }}">{{ csrf() }}
+<button class="btn btn-outline{% if n.kind.value == 'item_removed' %} danger{% endif %}">Grand, got it</button></form>
+</div>
+</div>
+{% endfor %}
+</section>
+{% endif %}
+
+<section class="section">
+<h2 class="section-title">{% if mine %}{{ mine|length }} gift{{ '' if mine|length == 1 else 's' }} on the go{% else %}Nothing yet{% endif %}</h2>
+{% if mine %}
+<div class="card"><div class="cane"></div><div class="items">
+{% for c in mine %}
+{% set v = c.view %}{% set it = v.item %}
+{% set others = v.contributions|rejectattr('user_id', 'equalto', me.id)|map(attribute='name')|list %}
+<article class="item{% if it.is_bought %} is-bought{% endif %}" style="flex-direction: column">
+<div class="item-head">
+<span><span class="item-title">{{ it.title }}</span><br>
+<span class="note">For {{ c.owner.name }}.{% if others %} Split with {{ others|join(', ') }}.{% endif %}</span></span>
+<span class="price">{{ c.my_amount_minor|money }}</span>
+</div>
+{% set here = url_for('pages.my_buys') %}
+{% if it.is_bought %}
+  <span class="badge">Bought. Sorted.</span>
+  {% if v.remaining_minor %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
+  <form method="post" action="{{ url_for('pages.unbought', item_id=it.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}"><button class="link">Oops, not bought</button></form>
+{% elif v.claimed_minor >= it.price_minor %}
+  <p class="status done">Fully covered. Off to the shops with you.</p>
+  <form method="post" action="{{ url_for('pages.bought', item_id=it.id) }}">{{ csrf() }}<input type="hidden" name="next" value="{{ here }}"><button class="btn btn-green btn-block">Mark as bought</button></form>
+{% else %}
+  {{ coverage(v, me) }}
+  <p class="hint">Can't mark it bought till someone coughs up the rest.</p>
+{% endif %}
+<a class="link" style="align-self: flex-start" href="{{ url_for('pages.buy', item_id=it.id, next=here) }}">Change my share</a>
+</article>
+{% endfor %}
+</div></div>
+<div class="card" style="background: var(--red); color: #fff; box-shadow: inset 0 0 0 3px var(--gold-lt)"><div class="card-body" style="flex-direction: row; justify-content: space-between; align-items: center">
+<strong>The damage</strong><span class="person-name" style="font-size: 40px; color: var(--cream-gold)">{{ total|money }}</span>
+</div></div>
+{% else %}
+<div class="card"><div class="cane"></div><div class="card-body">
+<p>You haven't said you'll buy anything. Go on, be generous.</p>
+<a class="btn" href="{{ url_for('pages.everyone') }}">See everyone's lists</a>
+</div></div>
+{% endif %}
+</section>
+{% endblock %}

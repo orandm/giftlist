@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf, thumb, title_link, coverage %}
+{% set it = view.item %}
+{% block header %}{{ hdr("Changing your mind?" if mine else "Going halves, are we?", it.title ~ " for " ~ owner.name ~ ". " ~ (it.price_minor|money) ~ " of pure joy.") }}{% endblock %}
+{% block content %}
+<div class="card"><div class="cane"></div><div class="card-body">
+<div class="media">
+{{ thumb(it) }}
+<div class="item-main">
+<div class="item-head">{{ title_link(it) }}<span class="price">{{ it.price_minor|money }}</span></div>
+{{ coverage(view, me) }}
+</div>
+</div>
+
+{% if mine %}
+  {% if it.is_bought %}<p class="warn">Heads up: it's already marked bought. Lower your share and someone's out of pocket.</p>{% endif %}
+  <form method="post" action="{{ url_for('pages.change_share', item_id=it.id) }}" style="display: flex; flex-direction: column; gap: 12px">
+  {{ csrf() }}<input type="hidden" name="next" value="{{ back }}">
+  <label class="field" for="amount">Your share</label>
+  <div class="money"><span>€</span><input id="amount" name="amount" inputmode="decimal" value="{{ to_input(mine.amount_minor) }}" required></div>
+  <button class="btn btn-block">Update my share</button>
+  </form>
+  <form method="post" action="{{ url_for('pages.withdraw', item_id=it.id) }}" data-confirm="Back out of this one?">
+  {{ csrf() }}<input type="hidden" name="next" value="{{ back }}">
+  <button class="btn btn-outline danger btn-block">Back out</button>
+  </form>
+{% elif view.remaining_minor > 0 %}
+  <form method="post" action="{{ url_for('pages.claim', item_id=it.id) }}" style="display: flex; flex-direction: column; gap: 12px">
+  {{ csrf() }}<input type="hidden" name="next" value="{{ back }}">
+  <label class="field" for="amount">How much are you chipping in?</label>
+  <div class="money"><span>€</span><input id="amount" name="amount" inputmode="decimal" value="{{ to_input(half) }}" required></div>
+  <p class="hint">{{ view.remaining_minor|money }} still needed. Someone else can cough up the rest.</p>
+  <div class="row">
+  <button class="quick" name="quick" value="{{ to_input(half) }}">Half, {{ half|money }}</button>
+  <button class="quick" name="quick" value="rest">Ah go on, {{ view.remaining_minor|money }}</button>
+  </div>
+  <button class="btn btn-block">Chip in</button>
+  </form>
+{% else %}
+  <p class="status done">Too slow. Someone's already covered this.</p>
+{% endif %}
+<a class="link" href="{{ back }}">Actually, never mind</a>
+</div></div>
+{% endblock %}

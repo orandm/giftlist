@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, item_card %}
+{% block header %}{{ hdr("The Nice List", "Christmas " ~ season_year ~ ". Your own lot are hidden here, so no peeking at what you're getting.") }}{% endblock %}
+{% block content %}
+{% if not households %}
+<div class="card"><div class="cane"></div><div class="card-body">
+<p>Nobody else has signed up yet. Go nag the group chat.</p>
+</div></div>
+{% endif %}
+{% for hh in households %}
+<section class="section">
+<h2 class="section-title">{{ hh.household.name }}</h2>
+<div class="card"><div class="cane"></div>
+{% for pv in hh.people %}
+<details class="person"{% if pv.still_needed %} open{% endif %}>
+<summary><span>
+<span class="person-name">{{ pv.person.name }}</span>
+{% if not pv.items %}<span class="status">Hasn't bothered adding anything yet</span>
+{% elif pv.still_needed %}<span class="status">{{ pv.still_needed }} of {{ pv.items|length }} still up for grabs</span>
+{% else %}<span class="status done">Sorted. You're off the hook.</span>{% endif %}
+</span></summary>
+{% if pv.items %}<div class="items">{% for v in pv.items %}{{ item_card(v, me, loop.index) }}{% endfor %}</div>{% endif %}
+</details>
+{% endfor %}
+</div>
+</section>
+{% endfor %}
+{% endblock %}

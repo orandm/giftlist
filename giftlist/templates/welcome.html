@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr %}
+{% block header %}{{ hdr("Well Hello, " ~ me.name, "Three quick steps. Less effort than the washing up after Christmas dinner.") }}{% endblock %}
+{% block content %}
+<ol class="section" style="list-style: none; margin: 0; padding: 0">
+<li class="card"><div class="card-body" style="flex-direction: row; box-shadow: inset 0 0 0 3px var(--gold-lt); border-radius: 16px">
+<span class="person-name" style="color: var(--red)">1</span><span><strong>Add a few things you'd like</strong><br><span class="muted small">Paste a shop link or just type it. Vague requests get socks.</span></span></div></li>
+<li class="card"><div class="card-body" style="flex-direction: row">
+<span class="person-name">2</span><span><strong>Add anyone you look after</strong><br><span class="muted small">Kids, or anyone who won't touch the app. Skip it if it's just you.</span></span></div></li>
+<li class="card"><div class="card-body" style="flex-direction: row">
+<span class="person-name">3</span><span><strong>Have a nose at everyone's lists</strong><br><span class="muted small">Grab something to buy, or split it and save a few quid.</span></span></div></li>
+</ol>
+<a class="btn btn-block" href="{{ url_for('pages.add_item', person_id=person.id) }}">Add my first item</a>
+<a class="link" href="{{ url_for('pages.everyone') }}">I'll do it later (I won't)</a>
+{% endblock %}

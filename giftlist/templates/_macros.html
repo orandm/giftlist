@@ -1,0 +1,66 @@
+{% macro hdr(title, sub=None) -%}
+<header class="hdr">
+<h1>{{ title }}</h1>
+{% if sub %}<p>{{ sub }}</p>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro csrf() -%}<input type="hidden" name="csrf" value="{{ csrf_token() }}">{%- endmacro %}
+
+{% macro thumb(item, idx=0, cls="thumb") -%}
+{% if item.image %}<img class="{{ cls }}" src="{{ url_for('pages.image', name=item.image) }}" alt="" loading="lazy">
+{% else %}<span class="{{ cls }} t{{ idx % 3 }}" aria-hidden="true"></span>{% endif %}
+{%- endmacro %}
+
+{% macro title_link(item) -%}
+{% if item.url %}<a class="item-title" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+{% else %}<span class="item-title">{{ item.title }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro who_paid(v, me) -%}
+{% for c in v.contributions %}{{ 'You' if c.user_id == me.id else c.name }} {{ c.amount_minor|money }}{{ ', ' if not loop.last }}{% endfor %}
+{%- endmacro %}
+
+{% macro coverage(v, me) -%}
+{% set it = v.item %}
+{% if v.contributions %}
+  {% if v.funding.value == 'over' %}
+  <p class="warn">Price dropped to {{ it.price_minor|money }}, but {{ v.claimed_minor|money }} is claimed. Someone lower their share.</p>
+  {% else %}
+  <div class="bar"><span style="width: {{ [100, v.claimed_minor * 100 // it.price_minor]|min }}%"></span></div>
+  <p class="status">{{ v.claimed_minor|money }} of {{ it.price_minor|money }} covered. {{ who_paid(v, me) }}</p>
+  {% endif %}
+  {% if it.is_bought and v.remaining_minor > 0 %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
+{% else %}
+  <p class="status">Nobody's claimed this. Tragic.</p>
+{% endif %}
+{%- endmacro %}
+
+{% macro item_card(v, me, idx) -%}
+{% set it = v.item %}
+{% set mine = v.contribution_of(me.id) %}
+{% set here = url_for('pages.everyone') ~ '#item-' ~ it.id %}
+<article class="item{% if it.is_bought %} is-bought{% endif %}" id="item-{{ it.id }}">
+{{ thumb(it, idx) }}
+<div class="item-main">
+<div class="item-head">{{ title_link(it) }}<span class="price">{{ it.price_minor|money }}</span></div>
+{% if it.note %}<p class="note">{{ it.note }}</p>{% endif %}
+{% if it.really_want %}<span class="badge">Will sulk without it</span>{% endif %}
+{% if it.is_bought %}<span class="badge">Bought. Sorted.</span>{% endif %}
+{{ coverage(v, me) }}
+{% if mine %}
+  {% if not it.is_bought and v.claimed_minor >= it.price_minor %}
+  <form method="post" action="{{ url_for('pages.bought', item_id=it.id) }}">{{ csrf() }}
+  <input type="hidden" name="next" value="{{ here }}">
+  <button class="btn btn-green btn-block">Mark as bought</button></form>
+  {% endif %}
+  <a class="link" href="{{ url_for('pages.buy', item_id=it.id, next=here) }}">Change my share</a>
+{% elif v.remaining_minor > 0 %}
+  <form method="post" action="{{ url_for('pages.claim', item_id=it.id) }}">{{ csrf() }}
+  <input type="hidden" name="amount" value="rest"><input type="hidden" name="next" value="{{ here }}">
+  <button class="btn btn-block">{% if v.claimed_minor %}Cover the last {{ v.remaining_minor|money }}, hero{% else %}I'll get this{% endif %}</button></form>
+  <a class="link" href="{{ url_for('pages.buy', item_id=it.id, next=here) }}">{% if v.claimed_minor %}Just chip in a bit{% else %}Not paying full price for that{% endif %}</a>
+{% endif %}
+</div>
+</article>
+{%- endmacro %}

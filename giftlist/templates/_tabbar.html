@@ -1,0 +1,13 @@
+<div class="tabbar trim">
+<nav aria-label="Main">
+<a href="{{ url_for('pages.everyone') }}"{% if tab == 'everyone' %} aria-current="page"{% endif %}>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5a5 5 0 0 1 5.5 5"/></svg>
+Everyone</a>
+<a href="{{ url_for('pages.my_list') }}"{% if tab == 'list' %} aria-current="page"{% endif %}>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12"/><path d="M9 12h12"/><path d="M9 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
+My list</a>
+<a href="{{ url_for('pages.my_buys') }}"{% if tab == 'buys' %} aria-current="page"{% endif %}>
+<span class="count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 13H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>{% if notice_count %}<b>{{ notice_count }}<span class="sr-only"> updates</span></b>{% endif %}</span>
+My buys</a>
+</nav>
+</div>

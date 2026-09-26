@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf, thumb %}
+{% block header %}{{ hdr("My List", "Whose wish list are we doing?" if people|length > 1 else "What do you want? Be specific, or you're getting socks.") }}{% endblock %}
+{% block content %}
+{% if people|length > 1 %}
+<nav class="tabs" aria-label="Whose list">
+{% for p in people %}<a href="{{ url_for('pages.my_list', person=p.id) }}"{% if p.id == person.id %} aria-current="page"{% endif %}>{{ 'Me' if p.user_id == me.id else p.name }}</a>{% endfor %}
+</nav>
+{% endif %}
+
+<a class="btn btn-block" href="{{ url_for('pages.add_item', person_id=person.id) }}">+ {{ 'Add something shiny' if person.user_id == me.id else 'Add something for ' ~ person.name }}</a>
+
+{% if items %}
+<p class="hint">Drag the handle to put favourites up top. Who's buying what? None of your business.</p>
+<div class="card"><div class="cane"></div>
+<ul class="mylist" data-reorder="{{ url_for('pages.reorder', person_id=person.id) }}">
+{% for it in items %}
+<li data-id="{{ it.id }}" id="row-{{ it.id }}">
+<span class="handle" aria-hidden="true"></span>
+{{ thumb(it, loop.index) }}
+<div class="grow">
+<span class="item-title">{{ it.title }}</span>
+<span class="note">{{ it.price_minor|money }}{% if it.really_want %} <span class="badge">Will sulk</span>{% endif %}</span>
+</div>
+<div class="movers">
+<form method="post" action="{{ url_for('pages.move_item', item_id=it.id) }}">{{ csrf() }}<input type="hidden" name="dir" value="up"><button aria-label="Move {{ it.title }} up">&#9650;</button></form>
+<form method="post" action="{{ url_for('pages.move_item', item_id=it.id) }}">{{ csrf() }}<input type="hidden" name="dir" value="down"><button aria-label="Move {{ it.title }} down">&#9660;</button></form>
+</div>
+<a class="link" href="{{ url_for('pages.edit_item', item_id=it.id) }}">Edit</a>
+</li>
+{% endfor %}
+</ul>
+</div>
+{% else %}
+<div class="card"><div class="cane"></div><div class="card-body"><p>Nothing on here yet. Santa can't read minds.</p></div></div>
+{% endif %}
+
+<section class="section">
+<h2 class="section-title">Your household</h2>
+<div class="card"><div class="card-body">
+<p class="muted small">Add the ones who won't touch the app. Kids, the other half, the dog. You'll do their lists for them.</p>
+<a class="btn btn-outline" href="{{ url_for('pages.household') }}">Manage household</a>
+</div></div>
+</section>
+
+<div class="row">
+{% if is_admin %}<a class="link" href="{{ url_for('admin.overview') }}">Admin</a>{% endif %}
+<form method="post" action="{{ url_for('auth.logout') }}">{{ csrf() }}<button class="link">Sign out</button></form>
+</div>
+{% endblock %}
+{% block scripts %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" defer></script>{% endblock %}

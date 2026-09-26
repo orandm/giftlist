@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf %}
+{% set for_me = person.user_id == me.id %}
+{% block header %}{{ hdr("Edit This One" if item else ("What's Santa Bringing You?" if for_me else "What's Santa Bringing " ~ person.name ~ "?"), "Paste a link or type it in. Be specific, or you're getting socks.") }}{% endblock %}
+{% block content %}
+<a class="link" style="align-self: flex-start" href="{{ url_for('pages.my_list', person=person.id) }}">&#8249; Back to the list</a>
+<form method="post" class="card" data-item-form
+      action="{{ url_for('pages.edit_item', item_id=item.id) if item else url_for('pages.add_item', person_id=person.id) }}">
+<div class="cane"></div>
+<div class="card-body" style="gap: 18px">
+{{ csrf() }}
+<label class="field">Paste a link from the shop <span class="hint">Optional</span>
+<input type="url" name="url" inputmode="url" value="{{ item.url if item and item.url else '' }}" placeholder="https://">
+</label>
+<p class="hint" data-status aria-live="polite"></p>
+<img data-photo class="thumb" style="width: 96px; height: 96px" alt=""
+     src="{{ url_for('pages.image', name=item.image) if item and item.image else '' }}"{% if not (item and item.image) %} hidden{% endif %}>
+<input type="hidden" name="image" value="{{ item.image if item and item.image else '' }}">
+{% if item and item.image %}<label class="row" style="flex: 0; font-size: 16px"><input type="checkbox" name="remove_image" style="width: 22px; height: 22px; flex: 0"> Get rid of the photo</label>{% endif %}
+<label class="field">What is it?
+<input type="text" name="title" required maxlength="160" value="{{ item.title if item else '' }}">
+</label>
+<label class="field" for="price">Price</label>
+<div class="money" style="margin-top: -10px"><span>€</span><input id="price" name="price" inputmode="decimal" required value="{{ to_input(item.price_minor) if item else '' }}" placeholder="0.00"></div>
+<p class="warn" data-price-hint hidden>The shop wouldn't tell us the price. Typical. Pop it in yourself.</p>
+<label class="field">Anything else? <span class="hint">Size, colour, "not the ugly one"</span>
+<input type="text" name="note" maxlength="300" value="{{ item.note if item and item.note else '' }}">
+</label>
+<label class="check"><input type="checkbox" name="really_want"{% if item and item.really_want %} checked{% endif %}> I'll sulk if I don't get this</label>
+<button class="btn btn-block">{{ 'Save changes' if item else 'Stick it on the list' }}</button>
+</div>
+</form>
+{% if item %}
+<form method="post" action="{{ url_for('pages.delete_item', item_id=item.id) }}" data-confirm="Take this off the list?">{{ csrf() }}
+<button class="link danger">Take it off the list</button></form>
+{% endif %}
+{% endblock %}

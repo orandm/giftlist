@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf %}
+{% block header %}{{ hdr("Dev Login", "Local testing only. Never enable this on the real server.") }}{% endblock %}
+{% block content %}
+<form method="post" class="card"><div class="card-body">
+{{ csrf() }}
+<label class="field">Name <input type="text" name="name" required></label>
+<label class="field">Email <input type="email" name="email" required></label>
+<button class="btn">Pretend to be them</button>
+</div></form>
+{% endblock %}

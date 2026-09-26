@@ -1,0 +1,13 @@
+<div class="gerry{% if gerry.ghost %} ghost{% endif %}" data-gerry role="status" aria-live="polite">
+<img src="{{ url_for('static', filename='gerry-' ~ gerry.mood ~ '.svg') }}" alt="">
+<div class="bubble">
+<span class="who">{{ 'Ghost of Gerry' if gerry.ghost else 'Gerry' }}</span>
+<p class="says">{{ gerry.text }}</p>
+<form method="post" action="{{ url_for('pages.sorry' if gerry.ghost else 'pages.banish') }}">
+<input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="next" value="{{ request.path }}">
+<button class="link">{{ 'Say sorry to Gerry' if gerry.ghost else 'Banish Gerry' }}</button>
+</form>
+<button type="button" class="x" data-close aria-label="Close">&#215;</button>
+</div>
+</div>

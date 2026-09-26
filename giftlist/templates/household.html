@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf %}
+{% block header %}{{ hdr("Your Household", "The people you do lists for, and whoever helps you.") }}{% endblock %}
+{% block content %}
+<form method="post" action="{{ url_for('pages.rename_household') }}" class="card"><div class="cane"></div><div class="card-body">
+{{ csrf() }}
+<label class="field">Household name <input type="text" name="name" value="{{ household.name }}" maxlength="60" required></label>
+<button class="btn btn-outline">Rename</button>
+</div></form>
+
+<section class="section">
+<h2 class="section-title">Who's in it</h2>
+<div class="card"><div class="items">
+{% for p in people %}
+<div class="item" style="flex-direction: column; gap: 10px">
+<div class="item-head"><span class="item-title">{{ p.name }}</span>
+<span class="note">{% if p.user_id == me.id %}That's you{% elif p.user_id %}Uses the app{% else %}You do their list{% endif %}</span></div>
+{% if p.is_dependent %}
+<form method="post" action="{{ url_for('pages.rename_person', person_id=p.id) }}" class="row">{{ csrf() }}
+<input type="text" name="name" value="{{ p.name }}" aria-label="New name for {{ p.name }}" maxlength="60" required>
+<button class="btn btn-outline" style="flex: 0">Rename</button></form>
+<form method="post" action="{{ url_for('pages.remove_person', person_id=p.id) }}" data-confirm="Remove {{ p.name }} and their whole list?">{{ csrf() }}
+<button class="link danger">Remove {{ p.name }}</button></form>
+{% endif %}
+</div>
+{% endfor %}
+</div></div>
+<form method="post" action="{{ url_for('pages.add_person') }}" class="card"><div class="card-body">
+{{ csrf() }}
+<label class="field">Add someone who won't use the app <input type="text" name="name" maxlength="60" placeholder="Name" required></label>
+<button class="btn">Add them</button>
+</div></form>
+</section>
+
+<section class="section">
+<h2 class="section-title">Rope in a partner</h2>
+<div class="card"><div class="card-body">
+<p class="small">Send this to your other half. They sign in with Google and help run your household's lists. Anyone with this link can join your household, so don't post it in the family group.</p>
+<div class="row"><input id="join" type="text" readonly value="{{ join_url }}" aria-label="Household invite link"><button type="button" class="btn btn-outline" style="flex: 0" data-copy="join">Copy</button></div>
+</div></div>
+</section>
+{% endblock %}

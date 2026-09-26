@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#A3162E">
+<title>Sign in: The Family Christmas List</title>
+<link rel="icon" href="{{ url_for('static', filename='gerry-grumpy.svg') }}" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Mountains+of+Christmas:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app signin">
+<div class="hero">
+<h1>The Family Christmas List</h1>
+<p style="font-size: 19px; color: #FDE3E7">Tell everyone what you want. See what they want. Never find out who's buying yours. Christmas magic, basically.</p>
+</div>
+<div class="trim"><div class="knit"></div></div>
+<div class="panel">
+{% for category, message in get_flashed_messages(with_categories=true) %}<p class="flash {{ category }}" role="alert">{{ message }}</p>{% endfor %}
+<p class="muted" style="text-align: center">{% if invited %}You've been invited. Resistance is futile.{% else %}New here? You'll need the invite link from the family group chat first.{% endif %}</p>
+<a class="google" href="{{ url_for('auth.google') }}"><span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 999px; background: var(--ground); display: flex; align-items: center; justify-content: center">G</span>Continue with Google</a>
+{% if dev_login %}<a class="link" href="{{ url_for('auth.dev_login') }}">Dev login (local testing only)</a>{% endif %}
+<p class="muted small" style="text-align: center">We only take your name and email. Santa already knows the rest.</p>
+</div>
+</div>
+</body>
+</html>

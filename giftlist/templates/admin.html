@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr, csrf %}
+{% block header %}{{ hdr("Admin", "The boring bits.") }}{% endblock %}
+{% block content %}
+<div class="card"><div class="cane"></div><div class="card-body">
+<span class="big-number">{{ users|length }}</span>
+<span class="muted">{{ 'person' if users|length == 1 else 'people' }} signed up, in {{ households|length }} household{{ '' if households|length == 1 else 's' }}.</span>
+</div></div>
+
+<section class="section">
+<h2 class="section-title">Invite link</h2>
+<div class="card"><div class="card-body">
+<p class="small">Post this in the family group chat. Anyone with it can sign up.</p>
+<div class="row"><input id="invite" type="text" readonly value="{{ invite_url }}" aria-label="Invite link"><button type="button" class="btn btn-outline" style="flex: 0" data-copy="invite">Copy</button></div>
+<form method="post" action="{{ url_for('admin.reset_invite') }}" data-confirm="Kill the old link and make a new one?">{{ csrf() }}
+<button class="btn btn-outline danger">Reset invite link</button></form>
+</div></div>
+</section>
+
+<section class="section">
+<h2 class="section-title">Everyone signed up</h2>
+<div class="card scroll"><table class="table">
+<thead><tr><th>Name</th><th>Household</th><th>Joined</th><th>Last seen</th><th></th></tr></thead>
+<tbody>
+{% for row in users %}{% set u = row.user %}
+<tr>
+<td><strong>{{ u.name }}</strong><br><span class="muted">{{ u.email }}</span>{% if u.gerry_ghost %}<br><span class="muted">Haunted</span>{% endif %}</td>
+<td>{{ row.household_name }}</td>
+<td>{{ u.created_at.day }} {{ u.created_at.strftime('%b') }}</td>
+<td>{{ (u.last_seen_at.day|string + ' ' + u.last_seen_at.strftime('%b')) if u.last_seen_at else 'Never' }}</td>
+<td>{% if u.id != me.id %}<form method="post" action="{{ url_for('admin.remove_user', user_id=u.id) }}" data-confirm="Remove {{ u.name }}? Their list and claims go too.">{{ csrf() }}<button class="link danger">Remove</button></form>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+</section>
+
+<section class="section">
+<h2 class="section-title">Households</h2>
+<div class="card scroll"><table class="table">
+<thead><tr><th>Household</th><th>App users</th><th>Others</th></tr></thead>
+<tbody>{% for h in households %}<tr><td>{{ h.household.name }}</td><td>{{ h.users }}</td><td>{{ h.dependents }}</td></tr>{% endfor %}</tbody>
+</table></div>
+</section>
+
+<section class="section">
+<h2 class="section-title">New season</h2>
+<form method="post" action="{{ url_for('admin.new_season') }}" class="card"><div class="card-body">
+{{ csrf() }}
+<p class="small">Wipes every list, claim and notice for everyone. Accounts and households stay. There's no undo.</p>
+<label class="field">Type CLEAR to confirm <input type="text" name="confirm" autocomplete="off" required></label>
+<button class="btn">Start a new season</button>
+</div></form>
+</section>
+{% endblock %}

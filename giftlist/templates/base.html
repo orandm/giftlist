@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="csrf" content="{{ csrf_token() }}">
+<meta name="theme-color" content="#A3162E">
+<title>{% block title %}The Family Christmas List{% endblock %}</title>
+<link rel="icon" href="{{ url_for('static', filename='gerry-grumpy.svg') }}" type="image/svg+xml">
+<link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Mountains+of+Christmas:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app">
+{% block header %}{% endblock %}
+<div class="trim"><div class="knit"></div></div>
+<main class="page">
+{% for category, message in get_flashed_messages(with_categories=true) %}
+<p class="flash {{ category }}" role="alert">{{ message }}</p>
+{% endfor %}
+{% block content %}{% endblock %}
+</main>
+{% if tab is defined and me %}{% include "_tabbar.html" %}{% endif %}
+</div>
+{% if gerry %}{% include "_gerry.html" %}{% endif %}
+{% block scripts %}{% endblock %}
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>
