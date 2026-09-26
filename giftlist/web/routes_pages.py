@@ -32,7 +32,7 @@ def everyone():
     mood_label = gerry.mood_label(mood)
     return render("everyone.html", households=lists.everyone(repo(), current_user()),
                   badges=badges.leaderboard(repo()), mood_label=mood_label, mood_emoji=gerry.MOOD_EMOJI[mood_label],
-                  tab="everyone")
+                  mood_sprite=gerry.MOOD_SPRITE[mood_label], tab="everyone")
 
 
 @bp.get("/welcome")

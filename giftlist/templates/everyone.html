@@ -4,7 +4,7 @@
 {% set countdown_days, countdown_line = gerry_countdown() %}
 {% call hdr("The Nice List", "Christmas " ~ season_year ~ ". Snoop on everyone's list except your own.") %}
 <div class="hdr-chips">
-<span class="chip" title="{{ countdown_line }}">
+<span class="chip">
 {%- if countdown_days > 0 -%}
 &#127876; {{ countdown_days }} day{{ '' if countdown_days == 1 else 's' }} left
 {%- elif countdown_days == 0 -%}
@@ -13,7 +13,13 @@
 &#127876; {{ -countdown_days }} day{{ '' if countdown_days == -1 else 's' }} past
 {%- endif -%}
 </span>
-<span class="chip">{{ mood_emoji }} Gerry's {{ mood_label|lower }}</span>
+</div>
+<div class="hdr-gerry">
+<div class="hdr-gerry-bubble">{{ countdown_line }}</div>
+<span class="hdr-gerry-img-wrap">
+<img class="hdr-gerry-img" src="{{ url_for('static', filename='gerry-' ~ mood_sprite ~ '.svg') }}" alt="Gerry, looking {{ mood_label|lower }}">
+<span class="hdr-gerry-emoji">{{ mood_emoji }}</span>
+</span>
 </div>
 {% endcall %}
 {% endblock %}

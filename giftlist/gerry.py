@@ -344,6 +344,14 @@ MOOD_EMOJI: dict[str, str] = {
     "Suspiciously delighted": "\U0001F607",
 }
 
+MOOD_SPRITE: dict[str, str] = {
+    "Furious": "grumpy",
+    "Grumpy": "grumpy",
+    "Tolerable": "eyeroll",
+    "Almost pleasant": "smug",
+    "Suspiciously delighted": "smug",
+}
+
 
 def mood_score(recent_triggers: list[str]) -> int:
     """0 (delighted) to 100 (furious), from what's happened in the last week. Starts at a grumpy baseline."""
