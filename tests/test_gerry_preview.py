@@ -95,43 +95,36 @@ class TestDecide(unittest.TestCase):
 
 
 class TestCountdown(unittest.TestCase):
-    def test_days_remaining_and_bands(self):
+    def test_days_remaining_bands_and_mood_gets_angrier(self):
         rng = AlwaysRoll()
-        days, line = gerry.countdown(date(2026, 12, 1), rng)
+        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 1), rng)
         self.assertEqual(days, 24)
         self.assertIn(line, gerry.COUNTDOWN_LINES["chill"])
+        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["chill"])
 
-        days, line = gerry.countdown(date(2026, 12, 20), rng)
+        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 20), rng)
         self.assertEqual(days, 5)
         self.assertIn(line, gerry.COUNTDOWN_LINES["urgent"])
+        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["urgent"])
 
-        days, line = gerry.countdown(date(2026, 12, 24), rng)
+        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 24), rng)
         self.assertEqual(days, 1)
         self.assertIn(line, gerry.COUNTDOWN_LINES["panic"])
+        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["panic"])
 
-        days, line = gerry.countdown(date(2026, 12, 25), rng)
+        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 25), rng)
         self.assertEqual(days, 0)
         self.assertIn(line, gerry.COUNTDOWN_LINES["today"])
+        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["today"])
 
-        days, line = gerry.countdown(date(2026, 12, 27), rng)
+        days, line, sprite, emoji = gerry.countdown(date(2026, 12, 27), rng)
         self.assertEqual(days, -2)
         self.assertIn(line, gerry.COUNTDOWN_LINES["past"])
+        self.assertEqual((sprite, emoji), gerry.COUNTDOWN_MOOD["past"])
 
-
-class TestMood(unittest.TestCase):
-    def test_baseline_is_grumpy_not_neutral(self):
-        self.assertEqual(gerry.mood_score([]), 50)
-        self.assertEqual(gerry.mood_label(50), "Grumpy")
-
-    def test_annoying_events_raise_it_calming_lowers_it(self):
-        up = gerry.mood_score(["tiny_chip_in", "tiny_chip_in", "backing_out"])
-        self.assertGreater(up, 50)
-        down = gerry.mood_score(["marked_bought", "apology"])
-        self.assertLess(down, 50)
-
-    def test_clamped_to_0_100(self):
-        self.assertEqual(gerry.mood_score(["tiny_chip_in"] * 20), 100)
-        self.assertEqual(gerry.mood_score(["marked_bought"] * 20), 0)
+    def test_sprite_mood_only_uses_real_artwork(self):
+        for sprite, _ in gerry.COUNTDOWN_MOOD.values():
+            self.assertIn(sprite, {"grumpy", "smug", "eyeroll"})
 
 
 PAGE = """<html><head><title> Shop | Flask </title>

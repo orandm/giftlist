@@ -355,7 +355,3 @@ class SqliteRepository:
     def gerry_event_totals(self):
         return [(r["user_id"], r["trigger"], r["n"]) for r in self._all(
             "SELECT user_id, trigger, COUNT(*) AS n FROM gerry_events GROUP BY user_id, trigger")]
-
-    def gerry_events_since(self, since):
-        return [r["trigger"] for r in self._all(
-            "SELECT trigger FROM gerry_events WHERE at >= ?", since.isoformat())]

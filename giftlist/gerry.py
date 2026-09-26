@@ -315,57 +315,21 @@ def _countdown_band(days: int) -> str:
     return "past"
 
 
-def countdown(today: date, rng: random.Random) -> tuple[int, str]:
-    """Days left until the 25th (negative once it's past), plus a line that gets ruder as it counts down."""
+# sprite (matches the gerry-*.svg files) + emoji, per band -- angrier the closer it gets
+COUNTDOWN_MOOD: dict[str, tuple[str, str]] = {
+    "chill": ("smug", "\U0001F60F"),
+    "getting_real": ("eyeroll", "\U0001F610"),
+    "urgent": ("grumpy", "\U0001F620"),
+    "panic": ("grumpy", "\U0001F621"),
+    "today": ("grumpy", "\U0001F621"),
+    "past": ("smug", "\U0001F60C"),
+}
+
+
+def countdown(today: date, rng: random.Random) -> tuple[int, str, str, str]:
+    """Days left until the 25th (negative once it's past), a line that gets ruder as it counts down,
+    and the sprite + emoji to show him with -- he gets visibly angrier the closer Christmas gets."""
     days = (date(today.year, 12, 25) - today).days
-    return days, rng.choice(COUNTDOWN_LINES[_countdown_band(days)])
-
-
-# --- mood -----------------------------------------------------------------------
-
-MOOD_UP = {Trigger.TINY_CHIP_IN.value, Trigger.CHEAP_CLAIM.value, Trigger.SPLIT_CHEAP.value,
-           Trigger.BACKING_OUT.value, Trigger.LOWERED_SHARE.value, Trigger.LATE_CLAIM.value,
-           Trigger.BROWSING.value}
-MOOD_DOWN = {Trigger.MARKED_BOUGHT.value, Trigger.SULK_AVERTED.value, Trigger.APOLOGY.value}
-
-MOOD_LABELS: tuple[tuple[int, str], ...] = (
-    (80, "Furious"),
-    (50, "Grumpy"),
-    (30, "Tolerable"),
-    (15, "Almost pleasant"),
-    (0, "Suspiciously delighted"),
-)
-
-MOOD_EMOJI: dict[str, str] = {
-    "Furious": "\U0001F621",
-    "Grumpy": "\U0001F624",
-    "Tolerable": "\U0001F610",
-    "Almost pleasant": "\U0001F642",
-    "Suspiciously delighted": "\U0001F607",
-}
-
-MOOD_SPRITE: dict[str, str] = {
-    "Furious": "grumpy",
-    "Grumpy": "grumpy",
-    "Tolerable": "eyeroll",
-    "Almost pleasant": "smug",
-    "Suspiciously delighted": "smug",
-}
-
-
-def mood_score(recent_triggers: list[str]) -> int:
-    """0 (delighted) to 100 (furious), from what's happened in the last week. Starts at a grumpy baseline."""
-    score = 50
-    for t in recent_triggers:
-        if t in MOOD_UP:
-            score += 10
-        elif t in MOOD_DOWN:
-            score -= 15
-    return max(0, min(100, score))
-
-
-def mood_label(score: int) -> str:
-    for floor, label in MOOD_LABELS:
-        if score >= floor:
-            return label
-    return MOOD_LABELS[-1][1]
+    band = _countdown_band(days)
+    sprite, emoji = COUNTDOWN_MOOD[band]
+    return days, rng.choice(COUNTDOWN_LINES[band]), sprite, emoji

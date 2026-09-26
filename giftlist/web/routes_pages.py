@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
-
 from flask import Blueprint, abort, flash, g, jsonify, redirect, request, send_from_directory, url_for
 
 from .. import access, accounts, badges, claims, clock, gerry, linkpreview, lists
@@ -27,12 +25,8 @@ def _everyone_anchor(item_id: int) -> str:
 @bp.get("/")
 @login_required
 def everyone():
-    recent = repo().gerry_events_since(clock.now() - timedelta(days=7))
-    mood = gerry.mood_score(recent)
-    mood_label = gerry.mood_label(mood)
     return render("everyone.html", households=lists.everyone(repo(), current_user()),
-                  badges=badges.leaderboard(repo()), mood_label=mood_label, mood_emoji=gerry.MOOD_EMOJI[mood_label],
-                  mood_sprite=gerry.MOOD_SPRITE[mood_label], tab="everyone")
+                  badges=badges.leaderboard(repo()), tab="everyone")
 
 
 @bp.get("/welcome")
