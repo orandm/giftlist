@@ -23,6 +23,11 @@ def _callback_url() -> str:
     return cfg().base_url + url_for("auth.callback")
 
 
+@bp.get("/privacy")
+def privacy():
+    return render_template("privacy.html", app_name="The Family Christmas List", me=current_user(), gerry=None)
+
+
 @bp.get("/login")
 def login():
     if current_user() is not None:

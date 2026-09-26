@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import hdr %}
+{% block title %}Privacy — {{ app_name }}{% endblock %}
+{% block header %}{{ hdr("Privacy") }}{% endblock %}
+{% block content %}
+<div class="card"><div class="cane"></div><div class="card-body">
+<p>{{ app_name }} is a small, private gift list for one family. This page covers what
+happens to your information.</p>
+
+<p><strong>What we collect.</strong> When you sign in with Google, we store your name,
+email address, and the wishlist items and claims you add. That's it — no analytics,
+no trackers, no ad networks.</p>
+
+<p><strong>How it's used.</strong> Solely to run the gift list: showing your items to
+others, showing you what's been claimed on lists you're allowed to see, and letting the
+admin manage the family's accounts.</p>
+
+<p><strong>Who sees it.</strong> Only people the site admin has invited — this isn't a
+public app. Your own household never sees who has claimed your items.</p>
+
+<p><strong>Sharing.</strong> We don't sell or share your data with anyone outside this
+app.</p>
+
+<p><strong>Deletion.</strong> Ask the admin to remove your account and your list and
+claims are deleted with it.</p>
+
+<p><strong>Contact.</strong> Questions? Ask whoever sent you the invite link.</p>
+</div></div>
+{% endblock %}
