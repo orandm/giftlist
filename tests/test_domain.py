@@ -161,6 +161,23 @@ class TestClaims(World):
         claims.update_claim(self.repo, self.ciaran, self.coat.id, 7000)  # top up
         self.assertEqual(self.view(self.ciaran, self.coat.id).remaining_minor, 0)
 
+    def test_last_claimer_withdrawing_after_bought_un_marks_it(self):
+        claims.claim(self.repo, self.ciaran, self.coat.id, 8000)
+        claims.mark_bought(self.repo, self.ciaran, self.coat.id)
+        claims.withdraw(self.repo, self.ciaran, self.coat.id)
+        v = self.view(self.aoife, self.coat.id)
+        self.assertFalse(v.item.is_bought)
+        self.assertEqual(v.contributions, ())
+
+    def test_one_of_several_claimers_withdrawing_after_bought_stays_bought(self):
+        claims.claim(self.repo, self.ciaran, self.coat.id, 5000)
+        claims.claim(self.repo, self.aoife, self.coat.id, 3000)
+        claims.mark_bought(self.repo, self.ciaran, self.coat.id)
+        claims.withdraw(self.repo, self.aoife, self.coat.id)
+        v = self.view(self.ciaran, self.coat.id)
+        self.assertTrue(v.item.is_bought)
+        self.assertEqual(v.remaining_minor, 3000)
+
     def test_co_claimers_notified_on_change_and_withdraw(self):
         claims.claim(self.repo, self.ciaran, self.coat.id, 4000)
         claims.claim(self.repo, self.aoife, self.coat.id, 4000)

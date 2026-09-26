@@ -147,7 +147,7 @@ class WebTests(unittest.TestCase):
         r = mam.text(f"/items/{coat}/buy")  # can't open your own item's buy page
         self.assertNotIn("Chip in", r)
 
-    def test_full_withdraw_after_bought_shows_shortfall_not_unclaimed(self):
+    def test_last_claimer_backing_out_after_bought_reopens_the_item(self):
         mam = Browser(self.app)
         mam.sign_in("mam@x.ie", self.invite)
         self.add_item(mam, "Chicken Treats", "3.79")
@@ -156,6 +156,22 @@ class WebTests(unittest.TestCase):
         self.boss.post(f"/items/{item}/bought")
         self.boss.post(f"/items/{item}/withdraw")
         page = self.boss.text("/")
+        self.assertNotIn("Bought", page)
+        self.assertIn("I'll get this", page)
+
+    def test_partial_withdraw_after_bought_shows_shortfall_not_unclaimed(self):
+        mam = Browser(self.app)
+        mam.sign_in("mam@x.ie", self.invite)
+        self.add_item(mam, "Chicken Treats", "3.79")
+        item = self.item_id(self.boss, "Chicken Treats")
+        self.boss.post(f"/items/{item}/claim", {"amount": "2.00"})
+        partner = Browser(self.app)
+        join = re.search(r"/household/join/[\w-]+", self.boss.text("/household")).group(0)
+        partner.sign_in("partner@x.ie", join)
+        partner.post(f"/items/{item}/claim", {"amount": "rest"})
+        self.boss.post(f"/items/{item}/bought")
+        self.boss.post(f"/items/{item}/withdraw")
+        page = partner.text("/")
         self.assertIn("Bought, but", page)
         self.assertIn("short", page)
         self.assertNotIn("Tragic", page)

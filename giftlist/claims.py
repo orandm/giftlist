@@ -95,6 +95,8 @@ def update_claim(repo: Repository, user: User, item_id: int, amount_minor: int) 
 
 
 def withdraw(repo: Repository, user: User, item_id: int) -> ClaimOutcome:
+    """Back out entirely. If that leaves nobody claiming it, it can't stay marked
+    bought -- there'd be nobody left for a shortfall to belong to."""
     with repo.write():
         item, owner = _claimable_item(repo, user, item_id)
         claims = repo.claims_for_item(item_id)
@@ -102,8 +104,10 @@ def withdraw(repo: Repository, user: User, item_id: int) -> ClaimOutcome:
         if mine is None:
             raise NotFound("You weren't in on that one anyway.")
         repo.delete_claim(item_id, user.id)
-        _notify_co_claimers(repo, item, owner, user, NoticeKind.SHARE_WITHDRAWN, {"old_minor": mine.amount_minor})
         others = sum(c.amount_minor for c in claims if c.user_id != user.id)
+        if others == 0 and item.is_bought:
+            repo.set_bought(item_id, None)
+        _notify_co_claimers(repo, item, owner, user, NoticeKind.SHARE_WITHDRAWN, {"old_minor": mine.amount_minor})
         return ClaimOutcome(item, owner, 0, mine.amount_minor, max(0, item.price_minor - others - mine.amount_minor), others)
 
 
