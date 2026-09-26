@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import secrets
 from dataclasses import dataclass
 
@@ -12,13 +13,15 @@ from .repository import Repository
 
 SITE_INVITE_KEY = "site_invite_token"
 
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
 
 def _token() -> str:
     return secrets.token_urlsafe(16)
 
 
 def _name(text: str, what: str = "Name") -> str:
-    text = (text or "").strip()
+    text = _CONTROL_CHARS.sub("", (text or "")).strip()
     if not text:
         raise DomainError(f"{what} can't be empty. Even Gerry has a name.")
     return text[:60]

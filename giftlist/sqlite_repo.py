@@ -297,6 +297,9 @@ class SqliteRepository:
             "SELECT person_id, COUNT(*) AS n, SUM(price_minor) AS total, SUM(really_want) AS sulk "
             "FROM items GROUP BY person_id")]
 
+    def all_items(self):
+        return [_item(r) for r in self._all("SELECT * FROM items")]
+
     # claims ---------------------------------------------------------------
 
     def claims_for_item(self, item_id):

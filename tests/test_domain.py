@@ -2,11 +2,14 @@ import os
 import tempfile
 import threading
 import unittest
+from datetime import UTC, datetime
+from unittest.mock import patch
 
 from giftlist import accounts, badges, claims, gerry, lists
 from giftlist.accounts import Invite
 from giftlist.errors import DomainError, NotAllowed, NotFound, OverClaimed
 from giftlist.models import Funding, NoticeKind
+from giftlist.money import MAX_MINOR, InvalidAmount, parse_amount
 from giftlist.sqlite_repo import SqliteRepository, connect, init_db
 
 
@@ -352,6 +355,47 @@ class TestBadges(World):
         self.assertEqual(board["easy_to_please"].subject_name, "Aoife")  # cheapest total (coat/lego cost more)
         self.assertEqual(board["serial_sulker"].subject_name, "Máire")  # only the coat has really_want set
 
+    def test_lone_entrant_gets_neither_hoarder_nor_easy_to_please(self):
+        # Only Máire and Liam have items from World's setUp. Wipe Liam's so only one
+        # person has any -- "highest" and "lowest" would otherwise be the same lone total.
+        lists.delete_item(self.repo, self.ciaran, self.lego.id)
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertNotIn("wish_list_hoarder", board)
+        self.assertNotIn("easy_to_please", board)
+
+    def test_extreme_item_badges_pick_cheapest_and_priciest(self):
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["bargain_bin"].subject_name, "Liam")
+        self.assertEqual(board["bargain_bin"].detail, "Lego, €60")
+        self.assertEqual(board["big_ask"].subject_name, "Máire")
+        self.assertEqual(board["big_ask"].detail, "Wool coat, €80")
+
+    def test_extreme_item_badges_need_at_least_two_items(self):
+        lists.delete_item(self.repo, self.ciaran, self.lego.id)
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertNotIn("bargain_bin", board)
+        self.assertNotIn("big_ask", board)
+
+    def test_night_owl_picks_most_items_added_between_midnight_and_5am(self):
+        kid = accounts.add_dependent(self.repo, self.ciaran, "Owlet")
+        with patch("giftlist.clock.now", return_value=datetime(2026, 1, 15, 2, 30, tzinfo=UTC)):
+            lists.add_item(self.repo, self.ciaran, kid.id, "Torch", None, None, 500, None, False)
+            lists.add_item(self.repo, self.ciaran, kid.id, "Batteries", None, None, 500, None, False)
+        with patch("giftlist.clock.now", return_value=datetime(2026, 1, 15, 14, 0, tzinfo=UTC)):
+            lists.add_item(self.repo, self.ciaran, kid.id, "Daytime thing", None, None, 500, None, False)
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertEqual(board["night_owl"].subject_name, "Owlet")
+        self.assertEqual(board["night_owl"].detail, "2 items")
+
+    def test_frequent_flyer_survives_a_claim_that_resets_the_window_shopper_streak(self):
+        for _ in range(3):
+            accounts.start_visit(self.repo, self.maire)
+        claims.claim(self.repo, self.maire, self.lego.id, 1000)  # resets visits_since_claim, not visit_count
+        board = {b.key: b for b in badges.leaderboard(self.repo)}
+        self.assertNotIn("window_shopper", board)
+        self.assertEqual(board["frequent_flyer"].subject_name, "Máire")
+        self.assertEqual(board["frequent_flyer"].detail, "3 visits")
+
     def test_big_family_energy_picks_the_household_with_more_dependents(self):
         board = {b.key: b for b in badges.leaderboard(self.repo)}
         self.assertEqual(board["big_family_energy"].subject_name, "Ciarán's household")
@@ -368,6 +412,52 @@ class TestBadges(World):
         self.assertNotIn("cheapskate", board)
         self.assertNotIn("window_shopper", board)
         self.assertIn("big_family_energy", board)  # untouched -- comes from live household data
+
+
+class TestInputHardening(World):
+    def test_price_over_the_ceiling_is_rejected(self):
+        with self.assertRaises(DomainError):
+            lists.add_item(self.repo, self.maire, self.p_maire.id, "Yacht", None, None, MAX_MINOR + 1, None, False)
+
+    def test_price_at_the_ceiling_is_allowed(self):
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Yacht", None, None, MAX_MINOR, None, False)
+        self.assertEqual(item.price_minor, MAX_MINOR)
+
+    def test_control_characters_stripped_from_title_note_and_name(self):
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Sock\x00s", None, None, 100, "Warm\x07 ones", False)
+        self.assertEqual(item.title, "Socks")
+        self.assertEqual(item.note, "Warm ones")
+        accounts.rename_person(self.repo, self.maire, self.p_maire.id, "M\x1baire")
+        self.assertEqual(self.repo.person(self.p_maire.id).name, "Maire")
+
+    def test_url_without_a_host_is_dropped_rather_than_saved(self):
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Mystery", "javascript:alert(1)", None, 100, None, False)
+        self.assertIsNone(item.url)
+
+    def test_url_with_a_space_is_dropped(self):
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Mystery", "x.ie/a b", None, 100, None, False)
+        self.assertIsNone(item.url)
+
+    def test_hostless_url_is_dropped(self):
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Mystery", "http://", None, 100, None, False)
+        self.assertIsNone(item.url)
+
+    def test_normal_url_still_gets_a_scheme(self):
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Book", "x.ie/book", None, 100, None, False)
+        self.assertEqual(item.url, "https://x.ie/book")
+
+
+class TestParseAmount(unittest.TestCase):
+    def test_rejects_over_the_ceiling(self):
+        with self.assertRaises(InvalidAmount):
+            parse_amount(f"{MAX_MINOR // 100 + 1}")
+
+    def test_allows_the_ceiling(self):
+        self.assertEqual(parse_amount(f"{MAX_MINOR // 100}"), MAX_MINOR)
+
+    def test_rejects_absurdly_long_input(self):
+        with self.assertRaises(InvalidAmount):
+            parse_amount("9" * 30)
 
 
 if __name__ == "__main__":

@@ -2,19 +2,25 @@
 
 from __future__ import annotations
 
+import re
+from urllib.parse import urlparse
+
 from . import access, claims, clock
 from .errors import DomainError, NotFound
 from .models import HouseholdView, Item, Person, PersonView, User
+from .money import MAX_MINOR
 from .repository import Repository
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _clean(text: str | None, limit: int = 300) -> str | None:
-    text = (text or "").strip()
+    text = _CONTROL_CHARS.sub("", (text or "")).strip()
     return text[:limit] or None
 
 
 def _title(text: str) -> str:
-    text = (text or "").strip()
+    text = _CONTROL_CHARS.sub("", (text or "")).strip()
     if not text:
         raise DomainError("It needs a name. Even 'surprise me' counts.")
     return text[:160]
@@ -22,14 +28,26 @@ def _title(text: str) -> str:
 
 def _url(url: str | None) -> str | None:
     url = _clean(url, 2000)
-    if url and not url.lower().startswith(("http://", "https://")):
-        url = "https://" + url
-    return url
+    if not url:
+        return None
+    candidate = url if url.lower().startswith(("http://", "https://")) else "https://" + url
+    if any(c.isspace() for c in candidate):
+        return None
+    try:
+        parsed = urlparse(candidate)
+        host = parsed.hostname
+    except ValueError:
+        return None
+    if parsed.scheme not in ("http", "https") or not host or "." not in host:
+        return None
+    return candidate
 
 
 def _price(price_minor: int) -> int:
     if price_minor <= 0:
         raise DomainError("Price has to be more than zero. Nothing's free, not even at Christmas.")
+    if price_minor > MAX_MINOR:
+        raise DomainError("That price is too large. Split it into a few items instead.")
     return price_minor
 
 

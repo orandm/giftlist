@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .clock import LOCAL
 from .gerry import Trigger
 from .money import format_amount
 from .repository import Repository
+
+NIGHT_OWL_HOURS = range(0, 5)  # local midnight to 5am -- should really be asleep
 
 
 @dataclass(slots=True, frozen=True)
@@ -62,8 +65,10 @@ def _person_item_badges(repo: Repository) -> list[BadgeHolder]:
     stats = repo.item_stats_by_person()  # (person_id, count, total_minor, sulk_count)
     out = []
 
+    # Need at least two people in the running, or "highest" and "lowest" are the same
+    # lone entrant -- which reads as a bug ("lowest total" showing the biggest number).
     with_items = [s for s in stats if s[1] > 0]
-    if with_items:
+    if len(with_items) >= 2:
         person_id, count, _, _ = max(with_items, key=lambda s: s[1])
         person = repo.person(person_id)
         if person is not None:
@@ -86,6 +91,53 @@ def _person_item_badges(repo: Repository) -> list[BadgeHolder]:
     return out
 
 
+def _extreme_item_badges(repo: Repository) -> list[BadgeHolder]:
+    """The single cheapest and priciest items anyone's asked for, site-wide."""
+    items = repo.all_items()
+    if len(items) < 2:  # need something to actually compare against
+        return []
+    out = []
+
+    cheapest = min(items, key=lambda i: i.price_minor)
+    person = repo.person(cheapest.person_id)
+    if person is not None:
+        out.append(BadgeHolder("bargain_bin", "Bargain Bin", "\U0001F3F7", "cheapest single item on any wish list",
+                               person.name, f"{cheapest.title}, {format_amount(cheapest.price_minor, 'EUR')}"))
+
+    priciest = max(items, key=lambda i: i.price_minor)
+    person = repo.person(priciest.person_id)
+    if person is not None:
+        out.append(BadgeHolder("big_ask", "Big Ask", "\U0001F48E", "priciest single item on any wish list",
+                               person.name, f"{priciest.title}, {format_amount(priciest.price_minor, 'EUR')}"))
+    return out
+
+
+def _night_owl(repo: Repository) -> BadgeHolder | None:
+    """Whoever adds the most wishes while everyone sane is asleep."""
+    counts: dict[int, int] = {}
+    for item in repo.all_items():
+        if item.created_at.astimezone(LOCAL).hour in NIGHT_OWL_HOURS:
+            counts[item.person_id] = counts.get(item.person_id, 0) + 1
+    if not counts:
+        return None
+    person_id, n = max(counts.items(), key=lambda t: t[1])
+    person = repo.person(person_id)
+    if person is None:
+        return None
+    return BadgeHolder("night_owl", "Night Owl", "\U0001F989", "most wishes added between midnight and 5am",
+                       person.name, _plural(n, "item"))
+
+
+def _frequent_flyer(repo: Repository) -> BadgeHolder | None:
+    """Most visits to the site, ever -- unlike Window Shopper, this one never resets."""
+    candidates = [u for u in repo.all_users() if u.visit_count > 0]
+    if not candidates:
+        return None
+    winner = max(candidates, key=lambda u: u.visit_count)
+    return BadgeHolder("frequent_flyer", "Frequent Flyer", "✈️", "most visits to the site, ever",
+                       winner.name, _plural(winner.visit_count, "visit"))
+
+
 def _big_family_energy(repo: Repository) -> BadgeHolder | None:
     candidates = [(hh_id, n) for hh_id, n in repo.dependents_count_by_household() if n > 0]
     if not candidates:
@@ -105,6 +157,13 @@ def leaderboard(repo: Repository) -> list[BadgeHolder]:
     if shopper is not None:
         out.append(shopper)
     out.extend(_person_item_badges(repo))
+    out.extend(_extreme_item_badges(repo))
+    owl = _night_owl(repo)
+    if owl is not None:
+        out.append(owl)
+    flyer = _frequent_flyer(repo)
+    if flyer is not None:
+        out.append(flyer)
     family = _big_family_energy(repo)
     if family is not None:
         out.append(family)
