@@ -280,14 +280,18 @@ class WebTests(unittest.TestCase):
         self.assertNotIn("gerry-echo", riley.text("/"))
         riley.post("/gerry/banish", {"next": "/"})
         page = riley.text("/")
+        self.assertNotIn("data-gerry", page)  # the big central popup is gone once banished
         self.assertEqual(page.count("gerry-echo tl"), 1)
         self.assertEqual(page.count("gerry-echo tr"), 1)
         self.assertEqual(page.count("gerry-echo bl"), 1)
         self.assertEqual(page.count("gerry-echo br"), 1)
-        echo_lines = re.findall(r'<div class="gerry-echo[^"]*"[^>]*>.*?<p class="says">([^<]+)</p>', page, re.S)
-        main_line = re.search(r'<p class="says">([^<]+)</p>', page).group(1)
-        self.assertEqual(len(echo_lines), 4)
-        self.assertEqual(len(set(echo_lines) | {main_line}), 5)  # all 5 lines on screen are distinct
+        echo_lines = re.findall(r'<div class="gerry-echo[^"]*">.*?<p class="says">([^<]+)</p>', page, re.S)
+        self.assertEqual(len(set(echo_lines)), 4)  # all 4 corner lines are distinct
+        self.assertEqual(page.count(">Say sorry<"), 4)  # each corner can un-banish him
+        riley.post("/gerry/sorry", {"next": "/"})
+        page = riley.text("/")
+        self.assertNotIn("gerry-echo", page)
+        self.assertIn("data-gerry", page)
 
     # --- admin ------------------------------------------------------------------------
 

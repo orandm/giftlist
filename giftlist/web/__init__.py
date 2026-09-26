@@ -35,6 +35,8 @@ def create_app(config: Config | None = None, provider: IdentityProvider | None =
         SESSION_COOKIE_SECURE=config.secure_cookies,
         PERMANENT_SESSION_LIFETIME=timedelta(days=90),
         MAX_CONTENT_LENGTH=1_000_000,
+        SEND_FILE_MAX_AGE_DEFAULT=0,  # always revalidate static files -- a phone shouldn't be able
+                                      # to keep serving yesterday's CSS/JS after a deploy
     )
 
     app.before_request(support.check_csrf)
