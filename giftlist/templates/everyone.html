@@ -43,7 +43,7 @@
 <h2 class="section-title">{{ hh.household.name }}</h2>
 <div class="card"><div class="cane"></div>
 {% for pv in hh.people %}
-<details class="person"{% if pv.still_needed %} open{% endif %}>
+<details class="person">
 <summary><span>
 <span class="person-name">{{ pv.person.name }}</span>
 {% if not pv.items %}<span class="status">Hasn't bothered adding anything yet</span>
