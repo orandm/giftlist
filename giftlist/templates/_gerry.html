@@ -13,8 +13,12 @@
 {% endif %}
 </div>
 </div>
-{% if me.punishment_mode and me.gerry_ghost %}
-<img class="gerry-corner tl upside-down" src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="" aria-hidden="true">
-<img class="gerry-corner tr upside-down" src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="" aria-hidden="true">
-<img class="gerry-corner bl" src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="" aria-hidden="true">
+{% if gerry_echoes %}
+{% set corners = ['tl upside-down', 'tr upside-down', 'bl', 'br'] %}
+{% for line in gerry_echoes %}
+<div class="gerry-echo {{ corners[loop.index0] }}" aria-hidden="true">
+<img src="{{ url_for('static', filename='gerry-ghost.svg') }}" alt="">
+<div class="bubble"><p class="says">{{ line }}</p></div>
+</div>
+{% endfor %}
 {% endif %}

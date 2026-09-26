@@ -269,17 +269,25 @@ class WebTests(unittest.TestCase):
         self.boss.post(f"/admin/users/{uid}/punishment", {"enabled": "0"})
         self.assertNotIn("Google", mam.text("/"))
 
-    def test_banishing_while_punished_spawns_corner_ghosts(self):
+    def test_banishing_while_punished_spawns_four_echo_ghosts(self):
         admin = self.boss.text("/admin")
         token = self.magic_token(admin)
-        kodi = Browser(self.app)
-        kodi.get(f"/join/magic/{token}")
-        r = kodi.post(f"/join/magic/{token}", {"name": "Kodi", "email": "kodi@x.ie"})
+        riley = Browser(self.app)
+        riley.get(f"/join/magic/{token}")
+        r = riley.post(f"/join/magic/{token}", {"name": "Riley", "email": "riley@x.ie"})
         link = re.search(r'value="(http://[^"]+/magic/[\w-]+)"', r.get_data(as_text=True)).group(1)
-        kodi.get(link.replace("http://localhost", ""))
-        self.assertNotIn("gerry-corner", kodi.text("/"))
-        kodi.post("/gerry/banish", {"next": "/"})
-        self.assertIn("gerry-corner", kodi.text("/"))
+        riley.get(link.replace("http://localhost", ""))
+        self.assertNotIn("gerry-echo", riley.text("/"))
+        riley.post("/gerry/banish", {"next": "/"})
+        page = riley.text("/")
+        self.assertEqual(page.count("gerry-echo tl"), 1)
+        self.assertEqual(page.count("gerry-echo tr"), 1)
+        self.assertEqual(page.count("gerry-echo bl"), 1)
+        self.assertEqual(page.count("gerry-echo br"), 1)
+        echo_lines = re.findall(r'<div class="gerry-echo[^"]*"[^>]*>.*?<p class="says">([^<]+)</p>', page, re.S)
+        main_line = re.search(r'<p class="says">([^<]+)</p>', page).group(1)
+        self.assertEqual(len(echo_lines), 4)
+        self.assertEqual(len(set(echo_lines) | {main_line}), 5)  # all 5 lines on screen are distinct
 
     # --- admin ------------------------------------------------------------------------
 

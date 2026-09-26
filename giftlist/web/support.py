@@ -188,4 +188,8 @@ def render(template: str, **ctx):
     popup = _page_load_popup()
     user = current_user()
     notice_count = len(repo().notices_for_user(user.id)) if user else 0
-    return render_template(template, gerry=popup, me=user, is_admin=is_admin(user), notice_count=notice_count, **ctx)
+    echoes = []
+    if popup is not None and user is not None and user.punishment_mode and user.gerry_ghost:
+        echoes = gerry.punishment_echoes(popup["text"], rng())
+    return render_template(template, gerry=popup, gerry_echoes=echoes, me=user, is_admin=is_admin(user),
+                           notice_count=notice_count, **ctx)

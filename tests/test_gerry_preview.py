@@ -54,6 +54,15 @@ class TestPunishmentPopup(unittest.TestCase):
             self.assertNotEqual(gerry.punishment_popup(last, random.Random()).text, last)
 
 
+class TestPunishmentEchoes(unittest.TestCase):
+    def test_four_distinct_lines_excluding_the_main_one(self):
+        main = gerry.PUNISHMENT_LINES[0]
+        echoes = gerry.punishment_echoes(main, random.Random())
+        self.assertEqual(len(echoes), 4)
+        self.assertEqual(len(set(echoes)), 4)
+        self.assertNotIn(main, echoes)
+
+
 class TestDecide(unittest.TestCase):
     ctx = gerry.context(owner="Máire", item="coat", amount_minor=200, price_minor=8000)
 

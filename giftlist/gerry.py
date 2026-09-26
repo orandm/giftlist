@@ -293,6 +293,13 @@ def punishment_popup(last_line: str | None, rng: random.Random) -> Popup:
     return Popup(line, False, line)
 
 
+def punishment_echoes(exclude: str, rng: random.Random, n: int = 4) -> list[str]:
+    """Extra corner-ghost lines shown once a punishment-mode account banishes
+    him -- distinct from the main popup's line and from each other."""
+    pool = [line for line in PUNISHMENT_LINES if line != exclude]
+    return rng.sample(pool, min(n, len(pool)))
+
+
 # --- countdown ----------------------------------------------------------------
 
 COUNTDOWN_LINES: dict[str, tuple[str, ...]] = {
