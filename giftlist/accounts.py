@@ -128,7 +128,7 @@ def remove_dependent(repo: Repository, user: User, person_id: int) -> None:
 
 
 def join_household(repo: Repository, user: User, invite_token: str) -> Household:
-    """Become a co-manager. Only allowed if your current household is just you."""
+    """Merge your whole household (you, plus any dependents) into another via their invite link."""
     with repo.write():
         target = repo.household_by_invite(invite_token)
         if target is None:
@@ -136,11 +136,9 @@ def join_household(repo: Repository, user: User, invite_token: str) -> Household
         me = access.own_person(repo, user)
         if me.household_id == target.id:
             return target
-        old_members = [p for p in repo.people_in_household(me.household_id) if p.id != me.id]
-        if old_members:
-            raise NotAllowed("You've already got people in your household. Ask the admin to sort it out.")
         old_household = me.household_id
-        repo.move_person(me.id, target.id)
+        for person in repo.people_in_household(old_household):
+            repo.move_person(person.id, target.id)
         repo.delete_household(old_household)
         _purge_in_household_claims(repo, target.id)
         return target

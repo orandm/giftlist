@@ -218,10 +218,14 @@ class TestRemoval(World):
         accounts.join_household(self.repo, niamh, hh.invite_token)
         self.assertEqual([c.user_id for c in self.repo.claims_for_item(self.lego.id)], [self.maire.id])
 
-    def test_cannot_join_if_household_not_empty(self):
+    def test_joining_brings_your_whole_household_with_you(self):
         mam_hh, _ = accounts.my_household(self.repo, self.maire)
-        with self.assertRaises(NotAllowed):
-            accounts.join_household(self.repo, self.ciaran, mam_hh.invite_token)
+        c_hh, _ = accounts.my_household(self.repo, self.ciaran)
+        accounts.join_household(self.repo, self.ciaran, mam_hh.invite_token)
+        merged, people = accounts.my_household(self.repo, self.ciaran)
+        self.assertEqual(merged.id, mam_hh.id)
+        self.assertEqual({p.name for p in people}, {"Máire", "Seán", "Ciarán", "Aoife", "Liam"})
+        self.assertIsNone(self.repo.household(c_hh.id))
 
     def test_new_season_clears_lists_keeps_people(self):
         claims.claim(self.repo, self.ciaran, self.coat.id, 1000)
