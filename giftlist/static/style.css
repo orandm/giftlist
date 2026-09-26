@@ -91,6 +91,7 @@ details.person[open] > summary::after { transform: rotate(-135deg) translateY(-4
 .price { font-size: 18px; font-weight: 700; white-space: nowrap; }
 .item.is-bought .item-title, .item.is-bought .price { color: var(--muted); }
 .note { font-size: 16px; color: var(--muted); }
+.item .status { font-style: italic; color: var(--green-dk); }
 .thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: #F3E4BC url("gift.svg") center / 28px no-repeat; }
 .thumb.t1 { background-color: #DDEBE2; }
 .thumb.t2 { background-color: #F9DDE2; }

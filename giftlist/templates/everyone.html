@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import hdr, item_card %}
-{% block header %}{{ hdr("The Nice List", "Christmas " ~ season_year ~ ". Your own lot are hidden here, so no peeking at what you're getting.") }}{% endblock %}
+{% block header %}{{ hdr("The Nice List", "Christmas " ~ season_year ~ ". Snoop on everyone's list except your own.") }}{% endblock %}
 {% block content %}
 {% if not households %}
 <div class="card"><div class="cane"></div><div class="card-body">
