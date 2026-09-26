@@ -252,7 +252,7 @@ class WebTests(unittest.TestCase):
         page = anon.text("/")
         self.assertIn('class="gerry cursed"', page)
         self.assertIn("Google", page)
-        self.assertNotIn("data-close", page)
+        self.assertIn("data-close", page)  # closeable, but every page load spawns him again anyway
 
     def test_magic_signup_rejects_a_dead_token(self):
         r = Browser(self.app).get("/join/magic/not-a-real-token")

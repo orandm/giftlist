@@ -24,9 +24,7 @@
 <input type="hidden" name="next" value="{{ request.path }}">
 <button class="link">{{ 'Say sorry to Gerry' if gerry.ghost else 'Banish Gerry' }}</button>
 </form>
-{% if not me.punishment_mode %}
 <button type="button" class="x" data-close aria-label="Close">&#215;</button>
-{% endif %}
 </div>
 </div>
 {% endif %}
