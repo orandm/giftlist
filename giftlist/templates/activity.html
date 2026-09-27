@@ -41,15 +41,14 @@
 {{ csrf() }}
 <div class="card"><div class="card-body">
 <p class="small">Gerry emails you what happened, once a day at 7pm your time. Only on days something did.</p>
-<label class="check"><input type="checkbox" name="subscribed"{% if me.email_subscribed %} checked{% endif %}> Email me a daily summary</label>
+<label class="check"><input type="checkbox" name="subscribed" data-auto-submit{% if me.email_subscribed %} checked{% endif %}> Email me a daily summary</label>
 </div></div>
 <div class="card" style="margin-top: 12px"><div class="card-body">
 <label class="field">Your timezone
-<select name="timezone">
-{% for tz in timezones %}<option value="{{ tz }}"{% if tz == my_timezone %} selected{% endif %}>{{ tz }}</option>{% endfor %}
+<select name="timezone" data-auto-submit>
+{% for iana, label in timezones %}<option value="{{ iana }}"{% if iana == my_timezone %} selected{% endif %}>{{ label }}</option>{% endfor %}
 </select>
 </label>
-<button class="btn btn-outline">Save</button>
 </div></div>
 </form>
 </section>

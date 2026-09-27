@@ -324,13 +324,18 @@ class WebTests(unittest.TestCase):
         self.assertNotIn("Scarf", mam_feed)
 
     def test_subscribe_and_unsubscribe(self):
-        r = self.boss.post("/activity/subscribe", {"subscribed": "1", "timezone": "America/New_York"})
+        r = self.boss.post("/activity/subscribe", {"subscribed": "1", "timezone": "America/Vancouver"})
         self.assertEqual(r.status_code, 302)
         page = self.boss.text("/activity")
-        self.assertIn('value="America/New_York" selected', page)
+        self.assertIn('value="America/Vancouver" selected', page)
         self.assertIn('name="subscribed"', page)
-        r = self.boss.post("/activity/subscribe", {"timezone": "America/New_York"})  # box unchecked
+        r = self.boss.post("/activity/subscribe", {"timezone": "America/Vancouver"})  # box unchecked
         self.assertIn("Unsubscribed", self.boss.text("/activity"))
+
+    def test_unsupported_timezone_rejected(self):
+        r = self.boss.post("/activity/subscribe", {"subscribed": "1", "timezone": "America/New_York"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("Never heard of that timezone", self.boss.text("/activity"))
 
     # --- admin ------------------------------------------------------------------------
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import secrets
 from dataclasses import dataclass
-from zoneinfo import available_timezones
 
 from . import access, activity, claims, clock, gerry
 from .errors import DomainError, NotAllowed, NotFound
@@ -257,7 +256,7 @@ def set_reveal(repo: Repository, user: User, target_person_id: int, revealed: bo
 
 def set_email_subscription(repo: Repository, user: User, subscribed: bool, timezone: str | None) -> None:
     """Opt into (or out of) Gerry's daily activity digest email."""
-    if timezone and timezone not in available_timezones():
+    if timezone and timezone not in dict(clock.SUPPORTED_TIMEZONES):
         raise DomainError("Never heard of that timezone.")
     with repo.write():
         repo.set_email_subscription(user.id, subscribed, timezone)

@@ -5,6 +5,13 @@ from zoneinfo import ZoneInfo
 
 LOCAL = ZoneInfo("Europe/Dublin")
 
+# The only timezones the daily digest picker offers -- (IANA name, label). Add
+# to this if the family spreads further; nobody needs the full IANA list.
+SUPPORTED_TIMEZONES: tuple[tuple[str, str], ...] = (
+    ("Europe/Dublin", "Ireland"),
+    ("America/Vancouver", "Vancouver"),
+)
+
 
 def now() -> datetime:
     return datetime.now(UTC)
