@@ -29,7 +29,8 @@
 <input type="text" name="note" maxlength="300" value="{{ item.note if item and item.note else '' }}">
 </label>
 <label class="check"><input type="checkbox" name="really_want"{% if item and item.really_want %} checked{% endif %}> I'll sulk if I don't get this</label>
-<label class="check"><input type="checkbox" name="is_voucher"{% if item and item.is_voucher %} checked{% endif %}> Make it a voucher <span class="hint">Arbitrary value -- the price above is just a starting figure, and people can add as much as they like</span></label>
+<label class="check"><input type="checkbox" name="is_voucher"{% if item and item.is_voucher %} checked{% endif %}> Make it a voucher</label>
+<p class="hint" style="margin-top: -10px">Arbitrary value &mdash; the price above is just a starting figure, and people can add as much as they like.</p>
 <button class="btn btn-block">{{ 'Save changes' if item else 'Stick it on the list' }}</button>
 </div>
 </form>
