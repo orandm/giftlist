@@ -131,7 +131,7 @@ img.thumb { background: #fff; }
 
 /* --- forms ------------------------------------------------------------------- */
 label.field { display: flex; flex-direction: column; gap: 8px; font-size: 18px; font-weight: 700; }
-input[type=text], input[type=url], input[type=email], input:not([type]) {
+input[type=text], input[type=url], input[type=email], input:not([type]), select {
   min-height: 56px; width: 100%; padding: 0 14px; border: 2px solid #B9C3BC; border-radius: 12px; background: #fff;
   font: 400 17px var(--body); color: var(--ink);
 }
