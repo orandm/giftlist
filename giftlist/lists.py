@@ -70,7 +70,8 @@ def add_item(repo: Repository, user: User, person_id: int, title: str, url: str 
         item = repo.add_item(person.id, _title(title), _url(url), image, _price(price_minor), _clean(note),
                              really_want, clock.now(), is_voucher)
         activity.log(repo, ActivityKind.ITEM_ADDED, household_id=person.household_id, person_id=person.id,
-                    item=item.title, person_name=person.name)
+                    item=item.title, person_name=person.name,
+                    co_owner_ids=[p.id for p in repo.people_sharing_item(item.id)])
         return item
 
 
@@ -93,7 +94,8 @@ def edit_item(repo: Repository, user: User, item_id: int, title: str, url: str |
         repo.update_item(item_id, new_title, _url(url), image, _price(price_minor), _clean(note),
                          really_want, is_voucher)
         activity.log(repo, ActivityKind.ITEM_EDITED, household_id=person.household_id, person_id=person.id,
-                    item=new_title, person_name=person.name)
+                    item=new_title, person_name=person.name,
+                    co_owner_ids=[p.id for p in repo.people_sharing_item(item_id)])
         return repo.item(item_id)
 
 
@@ -105,9 +107,10 @@ def delete_item(repo: Repository, user: User, item_id: int) -> Item:
         if item.is_bought:
             claims.notify_removal_blocked(repo, item, person)
         else:
+            co_owner_ids = [p.id for p in repo.people_sharing_item(item.id)]
             claims.remove_item_with_notices(repo, item, person)
             activity.log(repo, ActivityKind.ITEM_REMOVED, household_id=person.household_id, person_id=person.id,
-                        item=item.title, person_name=person.name)
+                        item=item.title, person_name=person.name, co_owner_ids=co_owner_ids)
     if item.is_bought:
         raise DomainError("Can't take that off the list now -- it's already bought. "
                           "Whoever's got it has been told you tried; sort it out with them directly.")

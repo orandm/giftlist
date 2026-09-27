@@ -516,6 +516,43 @@ class TestActivity(World):
         self.assertEqual([a.id for a in items], sorted(a.id for a in items))
 
 
+class TestActivitySharedGiftReveal(World):
+    """A shared gift's claim/bought/withdrawn activity is spoiler-gated the same
+    way seeing or claiming it is: revealing just one co-owner to yourself isn't
+    the other's consent, so it stays hidden until every co-owner is revealed."""
+
+    def setUp(self):
+        super().setUp()
+        mam_hh, _ = accounts.my_household(self.repo, self.maire)
+        self.nora = accounts.sign_in(self.repo, "g-nora", "nora@x.ie", "Nóra",
+                                     Invite(household_token=mam_hh.invite_token), False)
+        self.p_sean = self.repo.person_for_user(self.sean.id)
+        lists.toggle_share(self.repo, self.maire, self.coat.id, self.p_sean.id)
+        claims.claim(self.repo, self.ciaran, self.coat.id, 8000)
+        claims.mark_bought(self.repo, self.ciaran, self.coat.id)
+
+    def _kinds_for_coat(self, viewer):
+        return {a.kind for a in activity.feed(self.repo, viewer) if a.params.get("item") == "Wool coat"}
+
+    def test_hidden_with_only_one_co_owner_revealed(self):
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        kinds = self._kinds_for_coat(self.nora)
+        self.assertNotIn(ActivityKind.ITEM_CLAIMED, kinds)
+        self.assertNotIn(ActivityKind.ITEM_BOUGHT, kinds)
+
+    def test_visible_once_both_co_owners_revealed(self):
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        accounts.set_reveal(self.repo, self.nora, self.p_sean.id, True)
+        kinds = self._kinds_for_coat(self.nora)
+        self.assertIn(ActivityKind.ITEM_CLAIMED, kinds)
+        self.assertIn(ActivityKind.ITEM_BOUGHT, kinds)
+
+    def test_unshared_items_activity_unaffected(self):
+        scarf = lists.add_item(self.repo, self.maire, self.p_maire.id, "Scarf", None, None, 2000, None, False)
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        self.assertTrue(any(a.params.get("item") == "Scarf" for a in activity.feed(self.repo, self.nora)))
+
+
 class TestActivityReplies(World):
     def test_reply_appears_in_feed(self):
         activity.post_reply(self.repo, self.ciaran, "  well I never  ")
