@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import random
+
 from flask import Blueprint, abort, flash, g, jsonify, redirect, request, send_from_directory, url_for
 
 from .. import access, accounts, activity, badges, claims, clock, gerry, linkpreview, lists
@@ -22,11 +24,27 @@ def _everyone_anchor(item_id: int) -> str:
 
 # --- Activity ----------------------------------------------------------------------
 
+def _activity_entries(items, currency: str) -> list[dict]:
+    """Each activity re-told as a Gerry line, plus a sprite -- seeded on the
+    activity's own id so the same entry always shows the same mood and line."""
+    entries = []
+    for a in items:
+        rng = random.Random(a.id)
+        ctx = gerry.activity_context(a.params, currency)
+        entries.append({
+            "activity": a,
+            "line": gerry.activity_line(a.kind.value, ctx, rng),
+            "mood": gerry.activity_mood(rng),
+        })
+    return entries
+
+
 @bp.get("/activity")
 @login_required
 def activity_feed():
     user = current_user()
-    return render("activity.html", activities=activity.feed(repo(), user), timezones=clock.SUPPORTED_TIMEZONES,
+    entries = _activity_entries(activity.feed(repo(), user), cfg().currency)
+    return render("activity.html", entries=entries, timezones=clock.SUPPORTED_TIMEZONES,
                   my_timezone=user.timezone or clock.LOCAL.key, tab="activity")
 
 

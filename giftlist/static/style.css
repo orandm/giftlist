@@ -117,6 +117,21 @@ details.person[open] > summary::after { transform: rotate(-135deg) translateY(-4
 .item.is-bought .item-title, .item.is-bought .price { color: var(--muted); }
 .note { font-size: 16px; color: var(--muted); overflow-wrap: anywhere; }
 .item .status { font-style: italic; color: var(--green-dk); }
+
+/* --- activity feed (IM-style, Gerry narrates) ------------------------------ */
+.feed { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.feed-msg { display: flex; align-items: flex-end; gap: 10px; }
+.feed-avatar { width: 44px; height: auto; flex-shrink: 0; }
+.feed-bubble {
+  position: relative; max-width: calc(100% - 60px); padding: 10px 14px;
+  background: #fff; border: 2px solid var(--ink); border-radius: 16px 16px 16px 4px; box-shadow: 2px 2px 0 var(--ink);
+}
+.feed-bubble::before {
+  content: ""; position: absolute; left: -8px; bottom: 11px; width: 12px; height: 12px; background: inherit;
+  border-left: inherit; border-bottom: inherit; border-top: 0; border-right: 0; transform: rotate(45deg);
+}
+.feed-bubble .says { font-size: 16px; font-weight: 700; line-height: 1.35; }
+.feed-bubble .muted { display: block; margin-top: 4px; }
 .thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: #F3E4BC url("gift.svg") center / 28px no-repeat; }
 .thumb.t1 { background-color: #DDEBE2; }
 .thumb.t2 { background-color: #F9DDE2; }

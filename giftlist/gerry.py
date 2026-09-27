@@ -203,6 +203,69 @@ def unclaimed_line(rng: random.Random) -> str:
     return rng.choice(UNCLAIMED_LINES)
 
 
+ACTIVITY_LINES: dict[str, tuple[str, ...]] = {
+    "household_created": (
+        "{household_name} just turned up. Fresh meat.",
+        "New household: {household_name}. Gerry's already unimpressed.",
+        "{household_name} joined the site. Try to contain yourselves.",
+        "Welcome, {household_name}. Lower your expectations now, save time later.",
+    ),
+    "item_added": (
+        "{person_name} added {item} to their list. Bold ask.",
+        "{item}, courtesy of {person_name}. Manifesting, are we?",
+        "{person_name}'s list just grew: {item}. Somebody wants things.",
+        "{item}. {person_name} really put that in writing.",
+        "Another wish from {person_name}: {item}. Noted. Judged.",
+    ),
+    "item_edited": (
+        "{person_name} tinkered with {item}. Changed their mind, or just fussy?",
+        "{item}, now with edits from {person_name}. Never satisfied.",
+        "{person_name} updated {item}. Moving goalposts, classic.",
+    ),
+    "item_removed": (
+        "{person_name} pulled {item} off the list. Cold feet?",
+        "{item}, gone. {person_name} thought better of it.",
+        "{person_name} scrapped {item}. Gerry respects the honesty.",
+    ),
+    "item_claimed": (
+        "{claimer_name} put {amount} towards {item} for {owner_name}. Get them, generous.",
+        "{amount} from {claimer_name}, aimed at {item}. {owner_name}, brace yourself.",
+        "{claimer_name}'s in for {amount} on {item}. {owner_name} owes them one.",
+    ),
+    "item_bought": (
+        "{item} for {owner_name}, marked bought. Someone actually finished something.",
+        "{owner_name}'s {item} is sorted. Mark the calendar.",
+        "Bought: {item}, for {owner_name}. Gerry's stunned into silence. Briefly.",
+        "{buyer_name} actually bought {item} for {owner_name}. Miracles happen.",
+        "{buyer_name} followed through on {item}. Gerry's checking for a fever.",
+    ),
+    "item_withdrawn": (
+        "{claimer_name} bailed on {item} for {owner_name}. Shocking absolutely nobody.",
+        "{claimer_name} backed out of {item}. {owner_name} deserves better.",
+        "{item}, abandoned by {claimer_name}. {owner_name}, find a new hero.",
+    ),
+}
+
+
+def activity_context(params: dict, currency: str) -> dict[str, str]:
+    """The activity feed's params, ready to fill an ACTIVITY_LINES template."""
+    ctx = {k: v for k, v in params.items() if isinstance(v, str)}
+    if "amount_minor" in params:
+        ctx["amount"] = format_amount(params["amount_minor"], currency)
+    return ctx
+
+
+def activity_line(kind: str, ctx: dict[str, str], rng: random.Random) -> str:
+    """A cutting one-liner for the site-wide activity feed, in Gerry's voice."""
+    usable = [l for l in ACTIVITY_LINES.get(kind, ()) if _fillable(l, ctx)]
+    return rng.choice(usable).format_map(ctx) if usable else ""
+
+
+def activity_mood(rng: random.Random) -> str:
+    """Which sprite fronts a given activity-feed entry."""
+    return rng.choice(("smug", "eyeroll", "grumpy"))
+
+
 DIGEST_INTROS: tuple[str, ...] = (
     "Right, here's what you missed while you weren't obsessively refreshing the page.",
     "Gerry's nightly report. Try to contain your excitement.",
@@ -223,7 +286,7 @@ DIGEST_OUTROS: tuple[str, ...] = (
 
 def digest_sprite(rng: random.Random) -> str:
     """Which Gerry sprite fronts today's email."""
-    return rng.choice(("smug", "eyeroll", "grumpy"))
+    return activity_mood(rng)
 
 
 @dataclass(slots=True, frozen=True)
