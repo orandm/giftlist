@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% from "_macros.html" import hdr, csrf, thumb, title_link, coverage %}
 {% set it = view.item %}
-{% block header %}{{ hdr("Changing your mind?" if mine else "Going halves, are we?", it.title ~ " for " ~ owner.name ~ ". " ~ (it.price_minor|money) ~ " of pure joy.") }}{% endblock %}
+{% set page_title = "Changing your mind?" if mine else ("Chip in whatever you like" if it.is_voucher else "Going halves, are we?") %}
+{% set page_sub = it.title ~ " for " ~ owner.name ~ ". " ~ ("Any amount helps." if it.is_voucher else ((it.price_minor|money) ~ " of pure joy.")) %}
+{% block header %}{{ hdr(page_title, page_sub) }}{% endblock %}
 {% block content %}
 <div class="card"><div class="cane"></div><div class="card-body">
 <div class="media">
 {{ thumb(it) }}
 <div class="item-main">
-<div class="item-head">{{ title_link(it) }}<span class="price">{{ it.price_minor|money }}</span></div>
+<div class="item-head">{{ title_link(it) }}<span class="price">{% if it.is_voucher %}Any amount{% else %}{{ it.price_minor|money }}{% endif %}</span></div>
 {{ coverage(view, me) }}
 </div>
 </div>
@@ -23,6 +25,14 @@
   <form method="post" action="{{ url_for('pages.withdraw', item_id=it.id) }}">
   {{ csrf() }}<input type="hidden" name="next" value="{{ back }}">
   <button class="btn btn-outline danger btn-block">Back out</button>
+  </form>
+{% elif it.is_voucher %}
+  <form method="post" action="{{ url_for('pages.claim', item_id=it.id) }}" style="display: flex; flex-direction: column; gap: 12px">
+  {{ csrf() }}<input type="hidden" name="next" value="{{ back }}">
+  <label class="field" for="amount">How much are you adding?</label>
+  <div class="money"><span>€</span><input id="amount" name="amount" inputmode="decimal" value="{{ to_input(half) }}" required></div>
+  <p class="hint">No limit. Add whatever you like.</p>
+  <button class="btn btn-block">Chip in</button>
   </form>
 {% elif view.remaining_minor > 0 %}
   <form method="post" action="{{ url_for('pages.claim', item_id=it.id) }}" style="display: flex; flex-direction: column; gap: 12px">

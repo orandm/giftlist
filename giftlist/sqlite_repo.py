@@ -46,7 +46,13 @@ CREATE TABLE IF NOT EXISTS items (
     really_want INTEGER NOT NULL DEFAULT 0,
     position    INTEGER NOT NULL,
     bought_at   TEXT,
-    created_at  TEXT NOT NULL
+    created_at  TEXT NOT NULL,
+    is_voucher  INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS item_shares (
+    item_id   INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    PRIMARY KEY (item_id, person_id)
 );
 CREATE TABLE IF NOT EXISTS claims (
     item_id      INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
@@ -87,6 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_gerry_events_user ON gerry_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_gerry_events_at ON gerry_events(at);
 CREATE INDEX IF NOT EXISTS idx_claims_user ON claims(user_id);
 CREATE INDEX IF NOT EXISTS idx_notices_user ON notices(user_id);
+CREATE INDEX IF NOT EXISTS idx_item_shares_person ON item_shares(person_id);
 """
 
 
@@ -110,6 +117,7 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str)
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     _ensure_column(conn, "users", "punishment_mode", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(conn, "items", "is_voucher", "INTEGER NOT NULL DEFAULT 0")
 
 
 def _dt(text: str | None) -> datetime | None:
@@ -132,7 +140,8 @@ def _person(r) -> Person:
 
 def _item(r) -> Item:
     return Item(r["id"], r["person_id"], r["title"], r["url"], r["image"], r["price_minor"], r["note"],
-                bool(r["really_want"]), r["position"], _dt(r["bought_at"]), _dt(r["created_at"]))
+                bool(r["really_want"]), r["position"], _dt(r["bought_at"]), _dt(r["created_at"]),
+                bool(r["is_voucher"]))
 
 
 def _claim(r) -> Claim:
@@ -293,12 +302,12 @@ class SqliteRepository:
 
     # items ----------------------------------------------------------------
 
-    def add_item(self, person_id, title, url, image, price_minor, note, really_want, at):
+    def add_item(self, person_id, title, url, image, price_minor, note, really_want, at, is_voucher=False):
         pos = self._one("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM items WHERE person_id = ?", person_id)["p"]
         cur = self._run(
-            "INSERT INTO items (person_id, title, url, image, price_minor, note, really_want, position, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            person_id, title, url, image, price_minor, note, int(really_want), pos, at.isoformat())
+            "INSERT INTO items (person_id, title, url, image, price_minor, note, really_want, position, created_at, is_voucher) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            person_id, title, url, image, price_minor, note, int(really_want), pos, at.isoformat(), int(is_voucher))
         return self.item(cur.lastrowid)
 
     def item(self, item_id):
@@ -308,9 +317,10 @@ class SqliteRepository:
     def items_for_person(self, person_id):
         return [_item(r) for r in self._all("SELECT * FROM items WHERE person_id = ? ORDER BY position, id", person_id)]
 
-    def update_item(self, item_id, title, url, image, price_minor, note, really_want):
-        self._run("UPDATE items SET title = ?, url = ?, image = ?, price_minor = ?, note = ?, really_want = ? WHERE id = ?",
-                  title, url, image, price_minor, note, int(really_want), item_id)
+    def update_item(self, item_id, title, url, image, price_minor, note, really_want, is_voucher=False):
+        self._run("UPDATE items SET title = ?, url = ?, image = ?, price_minor = ?, note = ?, really_want = ?, "
+                  "is_voucher = ? WHERE id = ?",
+                  title, url, image, price_minor, note, int(really_want), int(is_voucher), item_id)
 
     def set_positions(self, ordered_item_ids):
         for pos, item_id in enumerate(ordered_item_ids):
@@ -333,6 +343,28 @@ class SqliteRepository:
 
     def all_items(self):
         return [_item(r) for r in self._all("SELECT * FROM items")]
+
+    # item shares (household gifts, shared between people) ------------------
+
+    def add_item_share(self, item_id, person_id):
+        self._run("INSERT OR IGNORE INTO item_shares (item_id, person_id) VALUES (?, ?)", item_id, person_id)
+
+    def remove_item_share(self, item_id, person_id):
+        self._run("DELETE FROM item_shares WHERE item_id = ? AND person_id = ?", item_id, person_id)
+
+    def is_item_shared_with(self, item_id, person_id):
+        return self._one("SELECT 1 FROM item_shares WHERE item_id = ? AND person_id = ?",
+                         item_id, person_id) is not None
+
+    def people_sharing_item(self, item_id):
+        return [_person(r) for r in self._all(
+            "SELECT people.* FROM item_shares JOIN people ON people.id = item_shares.person_id "
+            "WHERE item_shares.item_id = ? ORDER BY people.name COLLATE NOCASE", item_id)]
+
+    def items_shared_with_person(self, person_id):
+        return [_item(r) for r in self._all(
+            "SELECT items.* FROM item_shares JOIN items ON items.id = item_shares.item_id "
+            "WHERE item_shares.person_id = ? ORDER BY items.position, items.id", person_id)]
 
     # claims ---------------------------------------------------------------
 

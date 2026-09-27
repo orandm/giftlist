@@ -64,13 +64,14 @@ def claim(repo: Repository, user: User, item_id: int, amount_minor: int) -> Clai
             raise DomainError("You're already in on this one. Change your share instead.")
         claimed = sum(c.amount_minor for c in claims)
         remaining = item.price_minor - claimed
-        if remaining <= 0:
-            raise OverClaimed("Too slow. That's already covered.")
-        if amount_minor > remaining:
-            raise OverClaimed("That's more than what's left. Generous, but no.")
+        if not item.is_voucher:
+            if remaining <= 0:
+                raise OverClaimed("Too slow. That's already covered.")
+            if amount_minor > remaining:
+                raise OverClaimed("That's more than what's left. Generous, but no.")
         repo.add_claim(item_id, user.id, amount_minor, clock.now())
         repo.reset_visits_since_claim(user.id)
-        return ClaimOutcome(item, owner, amount_minor, 0, remaining, claimed + amount_minor)
+        return ClaimOutcome(item, owner, amount_minor, 0, max(0, remaining), claimed + amount_minor)
 
 
 def update_claim(repo: Repository, user: User, item_id: int, amount_minor: int) -> ClaimOutcome:
@@ -84,7 +85,7 @@ def update_claim(repo: Repository, user: User, item_id: int, amount_minor: int) 
         if mine is None:
             raise NotFound("You haven't claimed any of this one.")
         others = sum(c.amount_minor for c in claims if c.user_id != user.id)
-        if amount_minor > mine.amount_minor and others + amount_minor > item.price_minor:
+        if not item.is_voucher and amount_minor > mine.amount_minor and others + amount_minor > item.price_minor:
             raise OverClaimed("That's more than what's left. Generous, but no.")
         remaining_before = max(0, item.price_minor - others - mine.amount_minor)
         if amount_minor != mine.amount_minor:
@@ -123,7 +124,7 @@ def mark_bought(repo: Repository, user: User, item_id: int) -> ClaimOutcome:
     with repo.write():
         item, owner, claims = _require_claimer(repo, user, item_id)
         claimed = sum(c.amount_minor for c in claims)
-        if claimed < item.price_minor:
+        if not item.is_voucher and claimed < item.price_minor:
             raise DomainError("Can't mark it bought until it's fully covered. Someone needs to cough up.")
         repo.set_bought(item_id, clock.now())
         mine = next(c.amount_minor for c in claims if c.user_id == user.id)

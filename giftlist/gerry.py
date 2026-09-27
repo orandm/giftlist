@@ -44,6 +44,8 @@ class Trigger(Enum):
     GHOST_HAUNT = "ghost_haunt"
     BANISHED = "banished"
     APOLOGY = "apology"
+    GIFT_SHARED = "gift_shared"
+    VOUCHER_TOPUP = "voucher_topup"
 
 
 LINES: dict[Trigger, tuple[str, ...]] = {
@@ -131,6 +133,24 @@ LINES: dict[Trigger, tuple[str, ...]] = {
     ),
     Trigger.BANISHED: ("Banish me? Grand. Now I'm a ghost, and I'm everywhere.",),
     Trigger.APOLOGY: ("Apology accepted. Barely.",),
+    Trigger.GIFT_SHARED: (
+        "Sharing {item} with {owner}? Nothing says love like splitting the bill.",
+        "{owner}'s in on {item} now. Efficient. Very married of you.",
+        "Joint custody of {item}. How romantic.",
+        "Two names on one gift. Gerry respects the economy of it.",
+        "{owner} just got roped into {item}. Consent was implied, apparently.",
+        "Sharing is caring, or so they tell me. Mostly it's just cheaper.",
+        "One gift, two people, half the effort each. Maths.",
+    ),
+    Trigger.VOUCHER_TOPUP: (
+        "{amount} into a voucher. The laziest gift dressed up as generosity.",
+        "Cash by another name. {owner} will be thrilled. Or insulted. Toss a coin.",
+        "{amount} chucked at {item}. No thought required, and it shows.",
+        "A voucher. Bold move, showing your working.",
+        "{amount} more into the pot. At least you're consistent.",
+        "Congratulations, you've reinvented giving money in an envelope.",
+        "{amount}? Generous, or just couldn't be bothered shopping. Six of one.",
+    ),
 }
 
 GHOST_LINES: tuple[str, ...] = (

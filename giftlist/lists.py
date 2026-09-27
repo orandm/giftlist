@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlparse
 
 from . import access, claims, clock
-from .errors import DomainError, NotFound
+from .errors import DomainError, NotAllowed, NotFound
 from .models import HouseholdView, Item, Person, PersonView, User
 from .money import MAX_MINOR
 from .repository import Repository
@@ -64,28 +64,30 @@ def items_for_editing(repo: Repository, user: User, person_id: int) -> list[Item
 
 
 def add_item(repo: Repository, user: User, person_id: int, title: str, url: str | None, image: str | None,
-             price_minor: int, note: str | None, really_want: bool) -> Item:
+             price_minor: int, note: str | None, really_want: bool, is_voucher: bool = False) -> Item:
     with repo.write():
         person = access.require_editable(repo, user, person_id)
         return repo.add_item(person.id, _title(title), _url(url), image, _price(price_minor), _clean(note),
-                             really_want, clock.now())
+                             really_want, clock.now(), is_voucher)
 
 
 def _editable_item(repo: Repository, user: User, item_id: int) -> tuple[Item, Person]:
     item = repo.item(item_id)
     if item is None:
         raise NotFound("That item's already gone.")
-    person = access.require_editable(repo, user, item.person_id)
-    return item, person
+    if not access.can_edit_item(repo, user, item):
+        raise NotAllowed("That's not your list to fiddle with.")
+    return item, repo.person(item.person_id)
 
 
 def edit_item(repo: Repository, user: User, item_id: int, title: str, url: str | None, image: str | None,
-              price_minor: int, note: str | None, really_want: bool) -> Item:
+              price_minor: int, note: str | None, really_want: bool, is_voucher: bool = False) -> Item:
     """Price may drop below what's claimed: blocking it would reveal claims.
     Claimers see the item flagged as over-claimed instead."""
     with repo.write():
         _editable_item(repo, user, item_id)
-        repo.update_item(item_id, _title(title), _url(url), image, _price(price_minor), _clean(note), really_want)
+        repo.update_item(item_id, _title(title), _url(url), image, _price(price_minor), _clean(note),
+                         really_want, is_voucher)
         return repo.item(item_id)
 
 
@@ -94,6 +96,50 @@ def delete_item(repo: Repository, user: User, item_id: int) -> Item:
         item, person = _editable_item(repo, user, item_id)
         claims.remove_item_with_notices(repo, item, person)
         return item
+
+
+# --- household gifts: sharing an item with someone else in your household ----
+
+def shared_items_for_editing(repo: Repository, user: User, person_id: int) -> list[Item]:
+    """Joint gifts someone else in the household shared with this person -- edited the
+    same as their own."""
+    person = access.require_editable(repo, user, person_id)
+    return repo.items_shared_with_person(person.id)
+
+
+def share_names(repo: Repository, item_id: int, exclude_person_id: int | None = None) -> list[str]:
+    return [p.name for p in repo.people_sharing_item(item_id) if p.id != exclude_person_id]
+
+
+def share_candidates(repo: Repository, user: User, item: Item) -> list[Person]:
+    """Household-mates this item could be shared with: real users, not you, not the
+    dependent whose list it might be on. Only the item's own owner may manage this."""
+    owner = repo.person(item.person_id)
+    if owner is None or owner.user_id != user.id:
+        return []
+    return [p for p in repo.people_in_household(owner.household_id) if p.user_id and p.user_id != user.id]
+
+
+def toggle_share(repo: Repository, user: User, item_id: int, target_person_id: int) -> tuple[Item, Person, bool]:
+    """Share (or un-share) one of your own gifts with a household-mate. Once shared,
+    it shows on both your lists and either of you can manage it."""
+    with repo.write():
+        item = repo.item(item_id)
+        if item is None:
+            raise NotFound("That item's already gone.")
+        owner = repo.person(item.person_id)
+        if owner is None or owner.user_id != user.id:
+            raise NotAllowed("Only the person who added it can share it.")
+        target = repo.person(target_person_id)
+        if target is None or target.id == owner.id or target.user_id is None \
+                or target.household_id != owner.household_id:
+            raise NotFound("Can't share it with that person.")
+        sharing_now = not repo.is_item_shared_with(item_id, target.id)
+        if sharing_now:
+            repo.add_item_share(item_id, target.id)
+        else:
+            repo.remove_item_share(item_id, target.id)
+        return item, target, sharing_now
 
 
 def reorder(repo: Repository, user: User, person_id: int, ordered_ids: list[int]) -> None:

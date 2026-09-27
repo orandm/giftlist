@@ -353,6 +353,62 @@ class TestRemoval(World):
         self.assertEqual(claims.my_claims(self.repo, self.ciaran), [])
 
 
+class TestHouseholdGifts(World):
+    def test_sharing_makes_it_editable_by_both_and_shows_on_both_lists(self):
+        p_sean = self.repo.person_for_user(self.sean.id)
+        item, target, sharing_now = lists.toggle_share(self.repo, self.maire, self.coat.id, p_sean.id)
+        self.assertTrue(sharing_now)
+        self.assertEqual(target.id, p_sean.id)
+        self.assertIn(self.coat.id, [i.id for i in lists.shared_items_for_editing(self.repo, self.sean, p_sean.id)])
+        lists.edit_item(self.repo, self.sean, self.coat.id, "Wool coat", None, None, 9000, None, True)
+        self.assertEqual(self.repo.item(self.coat.id).price_minor, 9000)
+
+    def test_unsharing_removes_it_from_the_other_list(self):
+        p_sean = self.repo.person_for_user(self.sean.id)
+        lists.toggle_share(self.repo, self.maire, self.coat.id, p_sean.id)
+        _, _, sharing_now = lists.toggle_share(self.repo, self.maire, self.coat.id, p_sean.id)
+        self.assertFalse(sharing_now)
+        self.assertEqual(lists.shared_items_for_editing(self.repo, self.sean, p_sean.id), [])
+        with self.assertRaises(NotAllowed):
+            lists.edit_item(self.repo, self.sean, self.coat.id, "X", None, None, 100, None, False)
+
+    def test_cannot_share_outside_your_own_household(self):
+        with self.assertRaises(NotFound):
+            lists.toggle_share(self.repo, self.maire, self.coat.id, self.p_aoife.id)
+
+    def test_only_the_owner_can_manage_sharing(self):
+        p_sean = self.repo.person_for_user(self.sean.id)
+        with self.assertRaises(NotAllowed):
+            lists.toggle_share(self.repo, self.sean, self.coat.id, p_sean.id)
+
+    def test_leaving_household_drops_a_now_cross_household_share(self):
+        p_sean = self.repo.person_for_user(self.sean.id)
+        lists.toggle_share(self.repo, self.maire, self.coat.id, p_sean.id)
+        accounts.leave_household(self.repo, self.sean)
+        self.assertEqual(self.repo.people_sharing_item(self.coat.id), [])
+        with self.assertRaises(NotAllowed):
+            lists.edit_item(self.repo, self.sean, self.coat.id, "X", None, None, 100, None, False)
+
+
+class TestVouchers(World):
+    def test_contributions_are_not_capped_at_the_price(self):
+        voucher = lists.add_item(self.repo, self.maire, self.p_maire.id, "Spa day", None, None, 5000, None, False, True)
+        claims.claim(self.repo, self.ciaran, voucher.id, 3000)
+        claims.claim(self.repo, self.aoife, voucher.id, 4000)  # 7000 total, over the 5000 "price"
+        v = self.view(self.ciaran, voucher.id)
+        self.assertEqual(v.claimed_minor, 7000)
+
+    def test_mark_bought_needs_no_full_cover(self):
+        voucher = lists.add_item(self.repo, self.maire, self.p_maire.id, "Spa day", None, None, 5000, None, False, True)
+        claims.claim(self.repo, self.ciaran, voucher.id, 1000)
+        claims.mark_bought(self.repo, self.ciaran, voucher.id)
+        self.assertTrue(self.repo.item(voucher.id).is_bought)
+
+    def test_non_voucher_item_still_caps_at_the_price(self):
+        with self.assertRaises(OverClaimed):
+            claims.claim(self.repo, self.ciaran, self.coat.id, 9000)  # coat's price is 8000
+
+
 class TestOrdering(World):
     def test_reorder_and_move(self):
         a = lists.add_item(self.repo, self.maire, self.p_maire.id, "A", None, None, 100, None, False)

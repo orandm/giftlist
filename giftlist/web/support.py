@@ -24,6 +24,8 @@ MOODS = {
     gerry.Trigger.SPLIT_CHEAP: "eyeroll",
     gerry.Trigger.BROWSING: "eyeroll",
     gerry.Trigger.LOWERED_SHARE: "eyeroll",
+    gerry.Trigger.VOUCHER_TOPUP: "eyeroll",
+    gerry.Trigger.GIFT_SHARED: "smug",
 }
 
 

@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% from "_macros.html" import hdr, csrf %}
 {% set for_me = person.user_id == me.id %}
+{% set shared_with_me = item and not for_me and not person.is_dependent %}
 {% block header %}{{ hdr("Edit This One" if item else ("What's Santa Bringing You?" if for_me else "What's Santa Bringing " ~ person.name ~ "?"), "Paste a link or type it in. Be specific, or you're getting socks.") }}{% endblock %}
 {% block content %}
 <a class="link" style="align-self: flex-start" href="{{ url_for('pages.my_list', person=person.id) }}">&#8249; Back to the list</a>
+{% if shared_with_me %}<p class="hint">This one's a joint gift with {{ person.name }}. Edit it and it changes for both of you.</p>{% endif %}
 <form method="post" class="card" data-item-form
       action="{{ url_for('pages.edit_item', item_id=item.id) if item else url_for('pages.add_item', person_id=person.id) }}">
 <div class="cane"></div>
@@ -27,11 +29,27 @@
 <input type="text" name="note" maxlength="300" value="{{ item.note if item and item.note else '' }}">
 </label>
 <label class="check"><input type="checkbox" name="really_want"{% if item and item.really_want %} checked{% endif %}> I'll sulk if I don't get this</label>
+<label class="check"><input type="checkbox" name="is_voucher"{% if item and item.is_voucher %} checked{% endif %}> Make it a voucher <span class="hint">Arbitrary value -- the price above is just a starting figure, and people can add as much as they like</span></label>
 <button class="btn btn-block">{{ 'Save changes' if item else 'Stick it on the list' }}</button>
 </div>
 </form>
 {% if item %}
 <form method="post" action="{{ url_for('pages.delete_item', item_id=item.id) }}" data-confirm="Take this off the list?">{{ csrf() }}
 <button class="link danger">Take it off the list</button></form>
+{% endif %}
+
+{% if item and for_me and share_candidates %}
+<section class="section">
+<h2 class="section-title">Share this gift</h2>
+<div class="card"><div class="card-body">
+<p class="small">Make it a joint gift with someone else in your household. Once shared, it shows on their list too, and either of you can manage it.</p>
+{% for p in share_candidates %}
+<form method="post" action="{{ url_for('pages.toggle_item_share', item_id=item.id) }}">{{ csrf() }}
+<input type="hidden" name="person_id" value="{{ p.id }}">
+<label class="check"><input type="checkbox" data-auto-submit{% if p.id in shared_with_ids %} checked{% endif %}> Share with {{ p.name }}</label>
+</form>
+{% endfor %}
+</div></div>
+</section>
 {% endif %}
 {% endblock %}

@@ -206,6 +206,19 @@ def join_household(repo: Repository, user: User, invite_token: str) -> Household
         return target
 
 
+def _drop_cross_household_shares(repo: Repository, person: Person) -> None:
+    """Sharing a gift only makes sense within one household -- after a household
+    change, drop any share that now crosses the new boundary."""
+    for item in repo.items_for_person(person.id):
+        for other in repo.people_sharing_item(item.id):
+            if other.household_id != person.household_id:
+                repo.remove_item_share(item.id, other.id)
+    for item in repo.items_shared_with_person(person.id):
+        owner = repo.person(item.person_id)
+        if owner is not None and owner.household_id != person.household_id:
+            repo.remove_item_share(item.id, person.id)
+
+
 def leave_household(repo: Repository, user: User) -> Household:
     """Split off into your own new household. Blocked while it has any dependents in it,
     so their lists never end up orphaned -- move or remove them first."""
@@ -218,6 +231,7 @@ def leave_household(repo: Repository, user: User) -> Household:
             raise NotAllowed("You're already the only one here.")
         new_household = repo.add_household(f"{me.name}'s household", _token())
         repo.move_person(me.id, new_household.id)
+        _drop_cross_household_shares(repo, repo.person(me.id))
         return new_household
 
 

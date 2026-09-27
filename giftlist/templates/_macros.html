@@ -24,7 +24,13 @@
 
 {% macro coverage(v, me) -%}
 {% set it = v.item %}
-{% if v.contributions %}
+{% if it.is_voucher %}
+  {% if v.contributions %}
+  <p class="status">{{ v.claimed_minor|money }} added so far. {{ who_paid(v, me) }}</p>
+  {% else %}
+  <p class="status">{{ gerry_unclaimed_line() }}</p>
+  {% endif %}
+{% elif v.contributions %}
   {% if v.funding.value == 'over' %}
   <p class="warn">Price dropped to {{ it.price_minor|money }}, but {{ v.claimed_minor|money }} is claimed. Someone lower their share.</p>
   {% else %}
@@ -34,7 +40,7 @@
 {% elif not it.is_bought %}
   <p class="status">{{ gerry_unclaimed_line() }}</p>
 {% endif %}
-{% if it.is_bought and v.remaining_minor > 0 %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
+{% if it.is_bought and not it.is_voucher and v.remaining_minor > 0 %}<p class="warn">Bought, but {{ v.remaining_minor|money }} short.</p>{% endif %}
 {%- endmacro %}
 
 {% macro item_card(v, me, idx) -%}
@@ -44,18 +50,21 @@
 <article class="item{% if it.is_bought %} is-bought{% endif %}" id="item-{{ it.id }}">
 {{ thumb(it, idx) }}
 <div class="item-main">
-<div class="item-head">{{ title_link(it) }}<span class="price">{{ it.price_minor|money }}</span></div>
+<div class="item-head">{{ title_link(it) }}<span class="price">{% if it.is_voucher %}Any amount{% else %}{{ it.price_minor|money }}{% endif %}</span></div>
 {% if it.note %}<p class="note">{{ it.note }}</p>{% endif %}
 {% if it.really_want %}<span class="badge">Will sulk without it</span>{% endif %}
+{% if it.is_voucher %}<span class="badge">Voucher</span>{% endif %}
 {% if it.is_bought %}<span class="badge">Bought. Sorted.</span>{% endif %}
 {{ coverage(v, me) }}
 {% if mine %}
-  {% if not it.is_bought and v.claimed_minor >= it.price_minor %}
+  {% if not it.is_bought and (it.is_voucher or v.claimed_minor >= it.price_minor) %}
   <form method="post" action="{{ url_for('pages.bought', item_id=it.id) }}">{{ csrf() }}
   <input type="hidden" name="next" value="{{ here }}">
   <button class="btn btn-green btn-block">Mark as bought</button></form>
   {% endif %}
-  <a class="link" href="{{ url_for('pages.buy', item_id=it.id, next=here) }}">Change my share</a>
+  <a class="link" href="{{ url_for('pages.buy', item_id=it.id, next=here) }}">{{ 'Add more to this' if it.is_voucher else 'Change my share' }}</a>
+{% elif it.is_voucher %}
+  <a class="link" href="{{ url_for('pages.buy', item_id=it.id, next=here) }}">Chip in whatever you like</a>
 {% elif v.remaining_minor > 0 %}
   <form method="post" action="{{ url_for('pages.claim', item_id=it.id) }}">{{ csrf() }}
   <input type="hidden" name="amount" value="rest"><input type="hidden" name="next" value="{{ here }}">

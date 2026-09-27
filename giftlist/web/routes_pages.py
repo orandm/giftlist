@@ -53,12 +53,20 @@ def buy(item_id: int):
     except DomainError as e:
         return fail(str(e), url_for("pages.everyone"))
     mine = view.contribution_of(current_user().id)
-    half = (view.remaining_minor + 1) // 2 // 50 * 50 or view.remaining_minor  # round to 50c
+    if view.item.is_voucher:
+        half = view.item.price_minor  # no cap -- just a suggested starting figure
+    else:
+        half = (view.remaining_minor + 1) // 2 // 50 * 50 or view.remaining_minor  # round to 50c
     return render("buy.html", view=view, owner=owner, mine=mine, half=half,
                   back=next_url(_everyone_anchor(item_id)), tab="everyone")
 
 
 def _react_to_claim(outcome) -> None:
+    if outcome.item.is_voucher:
+        gerry_react(gerry.Trigger.VOUCHER_TOPUP,
+                    gerry.context(cfg().currency, owner=outcome.owner.name, item=outcome.item.title,
+                                 amount_minor=outcome.amount_minor))
+        return
     trig = gerry.claim_trigger(outcome.item.price_minor, outcome.amount_minor, outcome.remaining_before_minor,
                                outcome.claimed_after_minor, outcome.item.really_want, clock.local_today())
     gerry_react(trig, gerry.context(cfg().currency, owner=outcome.owner.name, item=outcome.item.title,
@@ -138,7 +146,11 @@ def my_list():
     wanted = request.args.get("person", type=int)
     person = next((p for p in people if p.id == wanted), people[0])
     items = lists.items_for_editing(repo(), user, person.id)
-    return render("my_list.html", people=people, person=person, items=items, tab="list")
+    shared_items = lists.shared_items_for_editing(repo(), user, person.id)
+    shares = {it.id: lists.share_names(repo(), it.id) for it in items}
+    shared_owners = {it.id: repo().person(it.person_id).name for it in shared_items}
+    return render("my_list.html", people=people, person=person, items=items, shared_items=shared_items,
+                  shares=shares, shared_owners=shared_owners, tab="list")
 
 
 def _list_url(person_id: int) -> str:
@@ -151,7 +163,7 @@ def _item_fields():
     if f.get("remove_image"):
         image = None
     return dict(title=f.get("title", ""), url=f.get("url"), image=image, price_minor=_amount("price"),
-                note=f.get("note"), really_want=bool(f.get("really_want")))
+                note=f.get("note"), really_want=bool(f.get("really_want")), is_voucher=bool(f.get("is_voucher")))
 
 
 @bp.route("/my-list/<int:person_id>/add", methods=["GET", "POST"])
@@ -181,17 +193,30 @@ def edit_item(item_id: int):
     item = repo().item(item_id)
     if item is None:
         abort(404)
-    try:
-        person = access.require_editable(repo(), user, item.person_id)
-    except DomainError:
+    owner = repo().person(item.person_id)
+    if owner is None or not access.can_edit_item(repo(), user, item):
         abort(404)
     if request.method == "GET":
-        return render("item_form.html", person=person, item=item, tab="list")
+        return render("item_form.html", person=owner, item=item, tab="list",
+                      share_candidates=lists.share_candidates(repo(), user, item),
+                      shared_with_ids={p.id for p in repo().people_sharing_item(item.id)})
     try:
         lists.edit_item(repo(), user, item_id, **_item_fields())
     except (DomainError, InvalidAmount) as e:
         return fail(str(e), url_for("pages.edit_item", item_id=item_id))
-    return redirect(_list_url(person.id))
+    return redirect(_list_url(owner.id))
+
+
+@bp.post("/items/<int:item_id>/toggle-share")
+@login_required
+def toggle_item_share(item_id: int):
+    def act():
+        target_id = request.form.get("person_id", type=int)
+        item, target, sharing_now = lists.toggle_share(repo(), current_user(), item_id, target_id)
+        if sharing_now:
+            gerry_react(gerry.Trigger.GIFT_SHARED, gerry.context(cfg().currency, item=item.title, owner=target.name))
+        return redirect(url_for("pages.edit_item", item_id=item_id))
+    return domain_action(url_for("pages.my_list"), act)
 
 
 @bp.post("/items/<int:item_id>/delete")

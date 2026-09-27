@@ -73,6 +73,7 @@ class Item:
     position: int
     bought_at: datetime | None
     created_at: datetime
+    is_voucher: bool = False  # arbitrary value: no fixed price, contributions aren't capped
 
     @property
     def is_bought(self) -> bool:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .errors import NotAllowed, NotFound
-from .models import Person, User
+from .models import Item, Person, User
 from .repository import Repository
 
 
@@ -39,6 +39,15 @@ def require_editable(repo: Repository, user: User, person_id: int) -> Person:
     if person is None or not can_edit(repo, user, person):
         raise NotAllowed("That's not your list to fiddle with.")
     return person
+
+
+def can_edit_item(repo: Repository, user: User, item: Item) -> bool:
+    """Your own item, a dependent's in your household, or one someone shared with you."""
+    person = repo.person(item.person_id)
+    if person is not None and can_edit(repo, user, person):
+        return True
+    mine = repo.person_for_user(user.id)
+    return mine is not None and repo.is_item_shared_with(item.id, mine.id)
 
 
 def require_claimable(repo: Repository, user: User, person_id: int) -> Person:

@@ -20,7 +20,7 @@
 {{ thumb(it, loop.index) }}
 <div class="grow">
 <span class="item-title">{{ it.title }}</span>
-<span class="note">{{ it.price_minor|money }}{% if it.really_want %} <span class="badge">Will sulk</span>{% endif %}</span>
+<span class="note">{% if it.is_voucher %}Voucher{% else %}{{ it.price_minor|money }}{% endif %}{% if it.really_want %} <span class="badge">Will sulk</span>{% endif %}{% if shares.get(it.id) %} <span class="badge">Joint with {{ shares[it.id]|join(', ') }}</span>{% endif %}</span>
 </div>
 <div class="movers">
 <form method="post" action="{{ url_for('pages.move_item', item_id=it.id) }}">{{ csrf() }}<input type="hidden" name="dir" value="up"><button aria-label="Move {{ it.title }} up">&#9650;</button></form>
@@ -33,6 +33,24 @@
 </div>
 {% else %}
 <div class="card"><div class="cane"></div><div class="card-body"><p>Nothing on here yet. Santa can't read minds.</p></div></div>
+{% endif %}
+
+{% if shared_items %}
+<section class="section">
+<h2 class="section-title">Joint gifts shared with you</h2>
+<div class="card"><div class="items">
+{% for it in shared_items %}
+<div class="item">
+{{ thumb(it, loop.index) }}
+<div class="grow">
+<span class="item-title">{{ it.title }}</span>
+<span class="note">{% if it.is_voucher %}Voucher{% else %}{{ it.price_minor|money }}{% endif %} &middot; with {{ shared_owners[it.id] }}</span>
+</div>
+<a class="link" href="{{ url_for('pages.edit_item', item_id=it.id) }}">Edit</a>
+</div>
+{% endfor %}
+</div></div>
+</section>
 {% endif %}
 
 <section class="section">
