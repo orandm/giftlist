@@ -10,7 +10,7 @@ from giftlist.accounts import Invite
 from giftlist.errors import DomainError, NotAllowed, NotFound, OverClaimed
 from giftlist.models import ActivityKind, Funding, NoticeKind
 from giftlist.money import MAX_MINOR, InvalidAmount, parse_amount
-from giftlist.sqlite_repo import SqliteRepository, connect, init_db
+from giftlist.sqlite_repo import SqliteRepository, _ensure_column, connect, init_db
 
 
 def make_repo(path=":memory:"):
@@ -73,10 +73,10 @@ class TestSignIn(World):
 
 
 class TestMagicLink(World):
-    def test_enroll_creates_account_and_defaults_punishment_mode_on(self):
+    def test_enroll_creates_account_without_punishment_by_default(self):
         user, token = accounts.enroll_magic(self.repo, "Kodi", "kodi@x.ie", self.site.site_token)
         self.assertEqual(user.email, "kodi@x.ie")
-        self.assertTrue(user.punishment_mode)
+        self.assertFalse(user.punishment_mode)
         self.assertIsNotNone(self.repo.person_for_user(user.id))
         self.assertEqual(accounts.magic_login(self.repo, token).id, user.id)
 
@@ -638,6 +638,23 @@ class TestInputHardening(World):
     def test_normal_url_still_gets_a_scheme(self):
         item = lists.add_item(self.repo, self.maire, self.p_maire.id, "Book", "x.ie/book", None, 100, None, False)
         self.assertEqual(item.url, "https://x.ie/book")
+
+
+class TestSqlHardening(World):
+    def test_sql_injection_style_input_is_stored_literally(self):
+        payload = "Robert'); DROP TABLE items; --"
+        item = lists.add_item(self.repo, self.maire, self.p_maire.id, payload, None, None, 100, None, False)
+        self.assertEqual(self.repo.item(item.id).title, payload)
+        self.assertIsNotNone(self.repo.item(self.coat.id))  # table's still there -- nothing was dropped
+
+    def test_ensure_column_rejects_unsafe_table_and_column_names(self):
+        conn = connect(":memory:")
+        init_db(conn)
+        with self.assertRaises(ValueError):
+            _ensure_column(conn, "users; DROP TABLE users; --", "x", "TEXT")
+        with self.assertRaises(ValueError):
+            _ensure_column(conn, "users", "x; DROP TABLE users; --", "TEXT")
+        conn.close()
 
 
 class TestParseAmount(unittest.TestCase):

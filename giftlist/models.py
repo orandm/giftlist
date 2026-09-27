@@ -36,7 +36,7 @@ class User:
     gerry_last_line: str | None
     visit_count: int
     visits_since_claim: int
-    punishment_mode: bool  # admin-set; magic-link accounts default to it
+    punishment_mode: bool  # admin-set only
     email_subscribed: bool = False  # opted into Gerry's daily activity digest
     timezone: str | None = None  # IANA zone name; None = site default (clock.LOCAL)
     last_digest_sent_date: str | None = None  # ISO date, in the user's own timezone

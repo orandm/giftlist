@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -118,9 +119,19 @@ def connect(path: str) -> sqlite3.Connection:
     return conn
 
 
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
 def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str) -> None:
     """Add a column to an already-deployed DB. SCHEMA covers fresh ones; this
-    covers the live one, where CREATE TABLE IF NOT EXISTS is a no-op."""
+    covers the live one, where CREATE TABLE IF NOT EXISTS is a no-op.
+
+    table/column always come from literal constants in init_db() below, never
+    from anything a user could influence -- but SQL identifiers can't be
+    parameterized with `?` like values can, so this checks them against an
+    allow-list pattern before splicing them into the DDL, as defence in depth."""
+    if not (_IDENTIFIER_RE.match(table) and _IDENTIFIER_RE.match(column)):
+        raise ValueError(f"unsafe identifier: {table}.{column}")
     cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
     if column not in cols:
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")

@@ -113,8 +113,8 @@ def resolve_invite(token: str) -> Invite:
 
 def enroll_magic(repo: Repository, name: str, email: str, invite_token: str) -> tuple[User, str]:
     """Creates the account with a synthetic identity (mirrors the '/dev/login'
-    precedent) plus a personal magic-login token, and starts them in punishment
-    mode -- the price of skipping Google."""
+    precedent) plus a personal magic-login token. Punishment mode is an admin
+    toggle (see set_punishment_mode), not something skipping Google earns you."""
     invite = resolve_invite(invite_token)
     if not invite_is_valid(repo, invite):
         raise NotAllowed("That link doesn't work any more.")
@@ -123,7 +123,6 @@ def enroll_magic(repo: Repository, name: str, email: str, invite_token: str) -> 
         user = _create_user_and_household(repo, f"magic:{_token()}", email, name, invite)
         token = secrets.token_urlsafe(32)
         repo.set_magic_token(user.id, token)
-        repo.set_punishment_mode(user.id, True)
         user = repo.user(user.id)
     return user, token
 

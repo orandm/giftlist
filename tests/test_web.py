@@ -253,7 +253,7 @@ class WebTests(unittest.TestCase):
     def magic_token(self, url_or_path):
         return re.search(r"/join/magic/([\w-]+)", url_or_path).group(1)
 
-    def test_magic_signup_flow_creates_account_in_punishment_mode(self):
+    def test_magic_signup_flow_does_not_punish_by_default(self):
         admin = self.boss.text("/admin")
         token = self.magic_token(admin)
         anon = Browser(self.app)
@@ -265,9 +265,8 @@ class WebTests(unittest.TestCase):
         r = anon.get(link.replace("http://localhost", ""))
         self.assertIn("/welcome", r.headers["Location"])
         page = anon.text("/")
-        self.assertIn('class="gerry cursed"', page)
-        self.assertIn("Google", page)
-        self.assertIn("data-close", page)  # closeable, but every page load spawns him again anyway
+        self.assertNotIn("cursed", page)
+        self.assertNotIn("Google Analytics", page)
 
     def test_magic_signup_rejects_a_dead_token(self):
         r = Browser(self.app).get("/join/magic/not-a-real-token")
@@ -292,6 +291,9 @@ class WebTests(unittest.TestCase):
         r = riley.post(f"/join/magic/{token}", {"name": "Riley", "email": "riley@x.ie"})
         link = re.search(r'value="(http://[^"]+/magic/[\w-]+)"', r.get_data(as_text=True)).group(1)
         riley.get(link.replace("http://localhost", ""))
+        admin = self.boss.text("/admin")
+        row = re.search(r"riley@x\.ie.*?/admin/users/(\d+)/punishment", admin, re.S)
+        self.boss.post(f"/admin/users/{int(row.group(1))}/punishment", {"enabled": "1"})
         self.assertNotIn("gerry-echo", riley.text("/"))
         riley.post("/gerry/banish", {"next": "/"})
         page = riley.text("/")
