@@ -118,6 +118,7 @@ class ActivityKind(Enum):
     ITEM_CLAIMED = "item_claimed"
     ITEM_BOUGHT = "item_bought"
     ITEM_WITHDRAWN = "item_withdrawn"
+    USER_REPLY = "user_reply"  # someone talking back to Gerry, not tied to any one household's list
 
 
 @dataclass(slots=True, frozen=True)

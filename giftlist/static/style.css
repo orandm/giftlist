@@ -132,6 +132,20 @@ details.person[open] > summary::after { transform: rotate(-135deg) translateY(-4
 }
 .feed-bubble .says { font-size: 16px; font-weight: 700; line-height: 1.35; }
 .feed-bubble .muted { display: block; margin-top: 4px; }
+.feed-avatar-user {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--green); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-family: var(--xmas); font-size: 22px; flex-shrink: 0;
+}
+.feed-bubble .who-mini { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
+.feed-msg.mine { flex-direction: row-reverse; }
+.feed-msg.mine .feed-bubble { border-radius: 16px 16px 4px 16px; }
+.feed-msg.mine .feed-bubble::before { left: auto; right: -8px; transform: rotate(-45deg); }
+.feed-reply { display: flex; gap: 10px; align-items: flex-end; padding: 14px 16px; border-top: 1px dashed var(--line); }
+.feed-reply textarea {
+  flex: 1; resize: none; padding: 12px 14px; border: 2px solid #B9C3BC; border-radius: 12px; background: #fff;
+  font: 400 16px var(--body); color: var(--ink);
+}
+.feed-reply .btn { flex-shrink: 0; }
 .thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: #F3E4BC url("gift.svg") center / 28px no-repeat; }
 .thumb.t1 { background-color: #DDEBE2; }
 .thumb.t2 { background-color: #F9DDE2; }

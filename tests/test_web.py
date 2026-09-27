@@ -337,6 +337,24 @@ class WebTests(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn("Never heard of that timezone", self.boss.text("/activity"))
 
+    def test_reply_shows_up_as_a_chat_bubble(self):
+        r = self.boss.post("/activity/reply", {"message": "  Fair enough, Gerry.  "})
+        self.assertEqual(r.status_code, 302)
+        page = self.boss.text("/activity")
+        self.assertIn("Fair enough, Gerry.", page)
+        self.assertIn("feed-msg mine", page)
+
+    def test_reply_rejects_links_and_profanity(self):
+        r = self.boss.post("/activity/reply", {"message": "check www.example.com"})
+        self.assertIn("No links", self.boss.text("/activity"))
+        r = self.boss.post("/activity/reply", {"message": "this is shit"})
+        self.assertIn("Keep it clean", self.boss.text("/activity"))
+
+    def test_reply_limited_to_one_per_day(self):
+        self.boss.post("/activity/reply", {"message": "first"})
+        self.boss.post("/activity/reply", {"message": "second"})
+        self.assertIn("One a day", self.boss.text("/activity"))
+
     # --- admin ------------------------------------------------------------------------
 
     def test_admin_is_hidden_from_others(self):

@@ -43,6 +43,8 @@ def _line(a: Activity, currency: str) -> str:
         return f"“{p['item']}” for {p['owner_name']} was marked bought."
     if a.kind is ActivityKind.ITEM_WITHDRAWN:
         return f"{p['claimer_name']} backed out of “{p['item']}” for {p['owner_name']}."
+    if a.kind is ActivityKind.USER_REPLY:
+        return f"{p['person_name']} talked back: “{p['message']}”"
     return ""
 
 

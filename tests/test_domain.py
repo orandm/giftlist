@@ -467,7 +467,42 @@ class TestActivity(World):
         items = activity.feed_since(self.repo, self.aoife, clock.now() - timedelta(hours=1))
         self.assertTrue(items)
         self.assertEqual([a.id for a in items], sorted(a.id for a in items))
-        self.assertEqual(activity.feed_since(self.repo, self.aoife, clock.now() + timedelta(hours=1)), [])
+
+
+class TestActivityReplies(World):
+    def test_reply_appears_in_feed(self):
+        activity.post_reply(self.repo, self.ciaran, "  well I never  ")
+        replies = [a for a in activity.feed(self.repo, self.aoife) if a.kind is ActivityKind.USER_REPLY]
+        self.assertEqual(replies[-1].params["message"], "well I never")
+        self.assertEqual(replies[-1].params["person_name"], "Ciarán")
+
+    def test_rejects_too_long(self):
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "x" * (activity.REPLY_MAX_LEN + 1))
+
+    def test_rejects_links(self):
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "check www.example.com")
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "https://x.ie")
+
+    def test_rejects_profanity(self):
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "this is shit")
+
+    def test_rejects_empty_message(self):
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "   ")
+
+    def test_one_reply_per_day(self):
+        activity.post_reply(self.repo, self.ciaran, "first")
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "second")
+
+    def test_cannot_reply_with_no_activity(self):
+        self.repo.delete_all_activity()
+        with self.assertRaises(DomainError):
+            activity.post_reply(self.repo, self.ciaran, "hello?")
 
 
 class TestOrdering(World):

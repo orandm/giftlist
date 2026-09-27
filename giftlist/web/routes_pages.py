@@ -8,6 +8,7 @@ from flask import Blueprint, abort, flash, g, jsonify, redirect, request, send_f
 
 from .. import access, accounts, activity, badges, claims, clock, gerry, linkpreview, lists
 from ..errors import DomainError
+from ..models import ActivityKind
 from ..money import InvalidAmount, parse_amount
 from .support import cfg, current_user, domain_action, fail, gerry_react, login_required, next_url, render, repo
 
@@ -25,14 +26,20 @@ def _everyone_anchor(item_id: int) -> str:
 # --- Activity ----------------------------------------------------------------------
 
 def _activity_entries(items, currency: str) -> list[dict]:
-    """Each activity re-told as a Gerry line, plus a sprite -- seeded on the
-    activity's own id so the same entry always shows the same mood and line."""
+    """Each activity re-told either as a Gerry line with a sprite (seeded on
+    the activity's own id, so an entry always shows the same mood and line),
+    or -- for a user's reply -- their own message, verbatim."""
     entries = []
     for a in items:
+        if a.kind is ActivityKind.USER_REPLY:
+            entries.append({"activity": a, "is_reply": True,
+                            "text": a.params["message"], "person_name": a.params["person_name"]})
+            continue
         rng = random.Random(a.id)
         ctx = gerry.activity_context(a.params, currency)
         entries.append({
             "activity": a,
+            "is_reply": False,
             "line": gerry.activity_line(a.kind.value, ctx, rng),
             "mood": gerry.activity_mood(rng),
         })
@@ -45,7 +52,18 @@ def activity_feed():
     user = current_user()
     entries = _activity_entries(activity.feed(repo(), user), cfg().currency)
     return render("activity.html", entries=entries, timezones=clock.SUPPORTED_TIMEZONES,
-                  my_timezone=user.timezone or clock.LOCAL.key, tab="activity")
+                  my_timezone=user.timezone or clock.LOCAL.key, tab="activity",
+                  reply_max_len=activity.REPLY_MAX_LEN, my_person_id=access.own_person(repo(), user).id)
+
+
+@bp.post("/activity/reply")
+@login_required
+def post_activity_reply():
+    def act():
+        activity.post_reply(repo(), current_user(), request.form.get("message", ""))
+        flash("Sent. Gerry's thrilled. Or not.", "ok")
+        return redirect(url_for("pages.activity_feed"))
+    return domain_action(url_for("pages.activity_feed"), act)
 
 
 @bp.post("/activity/subscribe")

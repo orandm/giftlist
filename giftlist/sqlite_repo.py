@@ -446,6 +446,11 @@ class SqliteRepository:
     def delete_all_activity(self):
         self._run("DELETE FROM activity")
 
+    def has_replied_recently(self, person_id, since_iso):
+        return self._one(
+            "SELECT 1 FROM activity WHERE kind = ? AND person_id = ? AND created_at >= ? LIMIT 1",
+            ActivityKind.USER_REPLY.value, person_id, since_iso) is not None
+
     # settings -------------------------------------------------------------
 
     def setting(self, key):

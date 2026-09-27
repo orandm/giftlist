@@ -3,3 +3,4 @@ gunicorn>=22,<24
 requests>=2.31,<3
 pillow>=10,<13
 tzdata>=2024.1
+better-profanity>=0.7,<0.8

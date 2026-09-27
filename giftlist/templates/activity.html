@@ -8,6 +8,16 @@
 {% if entries %}
 <div class="card"><div class="feed">
 {% for e in entries %}
+{% if e.is_reply %}
+<div class="feed-msg{% if e.activity.person_id == my_person_id %} mine{% endif %}">
+<div class="feed-avatar feed-avatar-user" aria-hidden="true">{{ e.person_name[:1]|upper }}</div>
+<div class="feed-bubble">
+{% if e.activity.person_id != my_person_id %}<span class="who-mini">{{ e.person_name }}</span>{% endif %}
+<p class="says">{{ e.text }}</p>
+<span class="muted small">{{ e.activity.created_at|timeago }}</span>
+</div>
+</div>
+{% else %}
 <div class="feed-msg">
 <img class="feed-avatar" src="{{ url_for('static', filename='gerry-' ~ e.mood ~ '.svg') }}" alt="">
 <div class="feed-bubble">
@@ -15,8 +25,15 @@
 <span class="muted small">{{ e.activity.created_at|timeago }}</span>
 </div>
 </div>
+{% endif %}
 {% endfor %}
-</div></div>
+</div>
+<form method="post" action="{{ url_for('pages.post_activity_reply') }}" class="feed-reply">
+{{ csrf() }}
+<textarea name="message" maxlength="{{ reply_max_len }}" rows="2" placeholder="Talk back to Gerry..." required></textarea>
+<button class="btn btn-outline" type="submit">Send</button>
+</form>
+</div>
 {% else %}
 <div class="card"><div class="cane"></div><div class="card-body"><p>Nothing yet. Give it a minute.</p></div></div>
 {% endif %}
