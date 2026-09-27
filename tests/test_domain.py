@@ -400,6 +400,53 @@ class TestHouseholdGifts(World):
             lists.edit_item(self.repo, self.sean, self.coat.id, "X", None, None, 100, None, False)
 
 
+class TestSharedGiftReveal(World):
+    """A third household-mate revealing just one co-owner of a shared gift
+    shouldn't be able to see or claim on it -- the other co-owner never
+    consented to being spoiled to that viewer."""
+
+    def setUp(self):
+        super().setUp()
+        mam_hh, _ = accounts.my_household(self.repo, self.maire)
+        self.nora = accounts.sign_in(self.repo, "g-nora", "nora@x.ie", "Nóra",
+                                     Invite(household_token=mam_hh.invite_token), False)
+        self.p_sean = self.repo.person_for_user(self.sean.id)
+        lists.toggle_share(self.repo, self.maire, self.coat.id, self.p_sean.id)
+
+    def _maire_items_seen_by_nora(self):
+        views = lists.everyone(self.repo, self.nora)
+        hh = next(v for v in views if v.household.id == self.p_maire.household_id)
+        maire_view = next((pv for pv in hh.people if pv.person.id == self.p_maire.id), None)
+        return [v.item.id for v in maire_view.items] if maire_view else []
+
+    def test_revealing_only_one_co_owner_still_hides_the_shared_gift(self):
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        self.assertNotIn(self.coat.id, self._maire_items_seen_by_nora())
+
+    def test_revealing_both_co_owners_shows_the_shared_gift(self):
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        accounts.set_reveal(self.repo, self.nora, self.p_sean.id, True)
+        self.assertIn(self.coat.id, self._maire_items_seen_by_nora())
+
+    def test_cannot_claim_shared_gift_with_only_one_co_owner_revealed(self):
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        with self.assertRaises(NotAllowed):
+            claims.claim(self.repo, self.nora, self.coat.id, 1000)
+
+    def test_can_claim_shared_gift_once_both_co_owners_revealed(self):
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        accounts.set_reveal(self.repo, self.nora, self.p_sean.id, True)
+        outcome = claims.claim(self.repo, self.nora, self.coat.id, 1000)
+        self.assertEqual(outcome.amount_minor, 1000)
+
+    def test_unshared_item_is_unaffected_by_the_extra_check(self):
+        scarf = lists.add_item(self.repo, self.maire, self.p_maire.id, "Scarf", None, None, 2000, None, False)
+        accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
+        self.assertIn(scarf.id, self._maire_items_seen_by_nora())
+        outcome = claims.claim(self.repo, self.nora, scarf.id, 500)
+        self.assertEqual(outcome.amount_minor, 500)
+
+
 class TestVouchers(World):
     def test_contributions_are_not_capped_at_the_price(self):
         voucher = lists.add_item(self.repo, self.maire, self.p_maire.id, "Spa day", None, None, 5000, None, False, True)

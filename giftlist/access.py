@@ -50,11 +50,16 @@ def can_edit_item(repo: Repository, user: User, item: Item) -> bool:
     return mine is not None and repo.is_item_shared_with(item.id, mine.id)
 
 
-def require_claimable(repo: Repository, user: User, person_id: int) -> Person:
-    """Claims are for other households only, unless you've revealed that person to yourself."""
-    person = repo.person(person_id)
-    if person is None:
+def require_claimable(repo: Repository, user: User, item: Item) -> Person:
+    """Claims are for other households only, unless you've revealed the owner to
+    yourself -- and, for a gift shared between household-mates, unless you've
+    revealed every one of them. One co-owner being revealed to you isn't the
+    other's consent to spoil a gift that's just as much theirs."""
+    owner = repo.person(item.person_id)
+    if owner is None:
         raise NotFound("That person's gone.")
-    if is_in_my_household(repo, user, person) and not is_revealed(repo, user, person):
-        raise NotAllowed("Nice try. You can't see what's happening with your own household's lists.")
-    return person
+    if is_in_my_household(repo, user, owner):
+        co_owners = [owner, *repo.people_sharing_item(item.id)]
+        if not all(is_revealed(repo, user, p) for p in co_owners):
+            raise NotAllowed("Nice try. You can't see what's happening with your own household's lists.")
+    return owner

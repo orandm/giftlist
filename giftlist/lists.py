@@ -179,16 +179,26 @@ def move(repo: Repository, user: User, item_id: int, delta: int) -> None:
 
 
 def everyone(repo: Repository, user: User) -> list[HouseholdView]:
-    """Every other household, plus any household-mates you've chosen to reveal to yourself."""
+    """Every other household, plus any household-mates you've chosen to reveal to yourself.
+
+    A gift shared between household-mates only shows once *every* co-owner is
+    revealed to you -- revealing one of them isn't the other's consent to
+    spoil a gift that's just as much theirs, so it stays out until both are."""
     mine = access.household_id_of(repo, user)
     revealed = repo.revealed_person_ids(user.id)
     out = []
     for hh in repo.all_households():
+        own_household = hh.id == mine
         candidates = [p for p in repo.people_in_household(hh.id) if p.id in revealed] \
-            if hh.id == mine else repo.people_in_household(hh.id)
-        people = tuple(
-            PersonView(p, tuple(claims.item_view(repo, i) for i in repo.items_for_person(p.id)))
-            for p in candidates)
+            if own_household else repo.people_in_household(hh.id)
+        people = []
+        for p in candidates:
+            items = repo.items_for_person(p.id)
+            if own_household:
+                items = [i for i in items
+                        if {p.id, *(co.id for co in repo.people_sharing_item(i.id))} <= revealed]
+            people.append(PersonView(p, tuple(claims.item_view(repo, i) for i in items)))
+        people = tuple(people)
         if people:
             out.append(HouseholdView(hh, people))
     return out
@@ -199,5 +209,5 @@ def claimable_item(repo: Repository, user: User, item_id: int):
     item = repo.item(item_id)
     if item is None:
         raise NotFound("That item's gone. Someone removed it.")
-    owner = access.require_claimable(repo, user, item.person_id)
+    owner = access.require_claimable(repo, user, item)
     return claims.item_view(repo, item), owner

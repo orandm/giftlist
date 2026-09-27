@@ -34,7 +34,7 @@ def _claimable_item(repo: Repository, user: User, item_id: int) -> tuple[Item, P
     item = repo.item(item_id)
     if item is None:
         raise NotFound("That item's gone. Someone removed it.")
-    owner = access.require_claimable(repo, user, item.person_id)
+    owner = access.require_claimable(repo, user, item)
     return item, owner
 
 
