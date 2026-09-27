@@ -62,6 +62,15 @@
 </section>
 
 <section class="section">
+<h2 class="section-title">Daily digest email</h2>
+<div class="card"><div class="card-body">
+<p class="small">Sends yourself a real test email right now (last 24h of activity you're allowed to see, or a bare one if there's none), bypassing the 7pm/once-a-day rule.</p>
+<form method="post" action="{{ url_for('admin.send_test_digest') }}">{{ csrf() }}
+<button class="btn btn-outline">Send me a test digest</button></form>
+</div></div>
+</section>
+
+<section class="section">
 <h2 class="section-title">Badges</h2>
 <div class="card"><div class="card-body">
 <p class="small">Wipes the badge leaderboard back to a clean slate. Lists and claims are untouched.</p>

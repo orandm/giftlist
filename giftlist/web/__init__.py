@@ -10,7 +10,7 @@ from flask import Flask
 from .. import gerry
 from ..auth import GoogleProvider, IdentityProvider
 from ..config import Config
-from ..clock import local_today
+from ..clock import local_today, time_ago
 from ..money import format_amount, to_input
 from ..sqlite_repo import connect, init_db
 from . import routes_admin, routes_auth, routes_pages, support
@@ -46,6 +46,7 @@ def create_app(config: Config | None = None, provider: IdentityProvider | None =
 
     currency = config.currency
     app.jinja_env.filters["money"] = lambda minor: format_amount(minor, currency)
+    app.jinja_env.filters["timeago"] = time_ago
     app.jinja_env.globals["csrf_token"] = support.csrf_token
     app.jinja_env.globals["to_input"] = to_input
     app.jinja_env.globals["gerry_unclaimed_line"] = lambda: gerry.unclaimed_line(support.rng())

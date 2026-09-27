@@ -203,6 +203,29 @@ def unclaimed_line(rng: random.Random) -> str:
     return rng.choice(UNCLAIMED_LINES)
 
 
+DIGEST_INTROS: tuple[str, ...] = (
+    "Right, here's what you missed while you weren't obsessively refreshing the page.",
+    "Gerry's nightly report. Try to contain your excitement.",
+    "Another day, another pile of Christmas nonsense. Here's the damage.",
+    "Settle in. Here's what everyone's been up to.",
+    "Your daily dose of other people's business, delivered by yours truly.",
+    "I've been watching. Here's today's gossip.",
+)
+
+DIGEST_OUTROS: tuple[str, ...] = (
+    "That's your lot. Go do something useful with it.",
+    "Same time tomorrow, assuming anyone does anything worth reporting.",
+    "Gerry out. Try to keep up.",
+    "Don't say I never tell you anything.",
+    "Right, I'm off. Some of us have judging to do.",
+)
+
+
+def digest_sprite(rng: random.Random) -> str:
+    """Which Gerry sprite fronts today's email."""
+    return rng.choice(("smug", "eyeroll", "grumpy"))
+
+
 @dataclass(slots=True, frozen=True)
 class Popup:
     text: str

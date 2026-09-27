@@ -5,10 +5,11 @@ from __future__ import annotations
 import re
 import secrets
 from dataclasses import dataclass
+from zoneinfo import available_timezones
 
-from . import access, claims, clock, gerry
+from . import access, activity, claims, clock, gerry
 from .errors import DomainError, NotAllowed, NotFound
-from .models import Household, Person, User
+from .models import ActivityKind, Household, Person, User
 from .repository import Repository
 
 SITE_INVITE_KEY = "site_invite_token"
@@ -73,9 +74,13 @@ def _create_user_and_household(repo: Repository, google_sub: str, email: str, na
     with repo.write():
         user = repo.add_user(google_sub, email, display, clock.now())
         household = repo.household_by_invite(invite.household_token) if invite.household_token else None
+        is_new_household = household is None
         if household is None:
             household = repo.add_household(f"{display}'s household", _token())
         repo.add_person(household.id, display, user.id)
+        if is_new_household:
+            activity.log(repo, ActivityKind.HOUSEHOLD_CREATED, household_id=household.id,
+                        household_name=household.name)
     return user
 
 
@@ -250,6 +255,14 @@ def set_reveal(repo: Repository, user: User, target_person_id: int, revealed: bo
                         claims.drop_claim_with_notices(repo, c, user)
 
 
+def set_email_subscription(repo: Repository, user: User, subscribed: bool, timezone: str | None) -> None:
+    """Opt into (or out of) Gerry's daily activity digest email."""
+    if timezone and timezone not in available_timezones():
+        raise DomainError("Never heard of that timezone.")
+    with repo.write():
+        repo.set_email_subscription(user.id, subscribed, timezone)
+
+
 def _purge_in_household_claims(repo: Repository, household_id: int) -> None:
     """After someone joins, nobody may hold claims on their own household's lists."""
     people = repo.people_in_household(household_id)
@@ -334,10 +347,11 @@ def remove_user(repo: Repository, user_id: int) -> None:
 
 
 def new_season(repo: Repository) -> None:
-    """Clear every list, claim and notice. Accounts and households stay."""
+    """Clear every list, claim, notice and activity entry. Accounts and households stay."""
     with repo.write():
         repo.delete_all_items()
         repo.delete_all_notices()
+        repo.delete_all_activity()
 
 
 def clear_badges(repo: Repository) -> None:

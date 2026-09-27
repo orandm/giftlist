@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerry's Daily Gossip</title>
+</head>
+<body style="margin:0; padding:0; background:#FBF3E1; font-family:Georgia,'Times New Roman',serif; color:#3F2E07;">
+<div style="max-width:520px; margin:0 auto; padding:28px 20px;">
+<div style="text-align:center; margin-bottom:12px;">
+<img src="{{ sprite_url }}" alt="Gerry" width="88" height="88" style="display:inline-block;">
+</div>
+<h1 style="text-align:center; font-size:22px; color:#A3162E; margin:0 0 20px;">Gerry's Daily Gossip</h1>
+<p style="font-size:16px; line-height:1.5;">{{ intro }}</p>
+{% if lines %}
+<ul style="padding-left:20px; font-size:15px; line-height:1.6;">
+{% for line in lines %}<li style="margin-bottom:8px;">{{ line }}</li>{% endfor %}
+</ul>
+{% endif %}
+<p style="font-size:16px; line-height:1.5;">{{ outro }}</p>
+<p style="font-size:12px; color:#8a7550; margin-top:32px; border-top:1px solid #e7d9b8; padding-top:16px;">
+You're getting this because you signed up for daily updates on The Family Christmas List.
+<a href="{{ manage_url }}" style="color:#A3162E;">Manage this in the app</a>.
+</p>
+</div>
+</body>
+</html>

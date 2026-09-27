@@ -5,9 +5,9 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
-from . import access, claims, clock
+from . import access, activity, claims, clock
 from .errors import DomainError, NotAllowed, NotFound
-from .models import HouseholdView, Item, Person, PersonView, User
+from .models import ActivityKind, HouseholdView, Item, Person, PersonView, User
 from .money import MAX_MINOR
 from .repository import Repository
 
@@ -67,8 +67,11 @@ def add_item(repo: Repository, user: User, person_id: int, title: str, url: str 
              price_minor: int, note: str | None, really_want: bool, is_voucher: bool = False) -> Item:
     with repo.write():
         person = access.require_editable(repo, user, person_id)
-        return repo.add_item(person.id, _title(title), _url(url), image, _price(price_minor), _clean(note),
+        item = repo.add_item(person.id, _title(title), _url(url), image, _price(price_minor), _clean(note),
                              really_want, clock.now(), is_voucher)
+        activity.log(repo, ActivityKind.ITEM_ADDED, household_id=person.household_id, person_id=person.id,
+                    item=item.title, person_name=person.name)
+        return item
 
 
 def _editable_item(repo: Repository, user: User, item_id: int) -> tuple[Item, Person]:
@@ -85,9 +88,12 @@ def edit_item(repo: Repository, user: User, item_id: int, title: str, url: str |
     """Price may drop below what's claimed: blocking it would reveal claims.
     Claimers see the item flagged as over-claimed instead."""
     with repo.write():
-        _editable_item(repo, user, item_id)
-        repo.update_item(item_id, _title(title), _url(url), image, _price(price_minor), _clean(note),
+        _, person = _editable_item(repo, user, item_id)
+        new_title = _title(title)
+        repo.update_item(item_id, new_title, _url(url), image, _price(price_minor), _clean(note),
                          really_want, is_voucher)
+        activity.log(repo, ActivityKind.ITEM_EDITED, household_id=person.household_id, person_id=person.id,
+                    item=new_title, person_name=person.name)
         return repo.item(item_id)
 
 
@@ -100,6 +106,8 @@ def delete_item(repo: Repository, user: User, item_id: int) -> Item:
             claims.notify_removal_blocked(repo, item, person)
         else:
             claims.remove_item_with_notices(repo, item, person)
+            activity.log(repo, ActivityKind.ITEM_REMOVED, household_id=person.household_id, person_id=person.id,
+                        item=item.title, person_name=person.name)
     if item.is_bought:
         raise DomainError("Can't take that off the list now -- it's already bought. "
                           "Whoever's got it has been told you tried; sort it out with them directly.")

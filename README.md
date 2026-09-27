@@ -35,6 +35,16 @@ must be open.
 Copies land in `data/backups/`, newest 14 kept. To restore: stop the app,
 copy a backup over `data/giftlist.db`, start it again.
 
+**Daily digest email** (Gerry's activity summary, for anyone who's subscribed
+on the Activity tab). Needs `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/
+`MAIL_FROM` set in `.env`. Runs hourly rather than once a day, since
+subscribers can be in different timezones -- each one only actually gets
+emailed once, at 7pm in their own zone:
+
+```
+0 * * * * cd /opt/giftlist && docker compose exec -T app python -m giftlist.email_digest >> data/digest.log 2>&1
+```
+
 ## Google sign-in
 
 1. Go to console.cloud.google.com, create a project (e.g. "Family gift list").
@@ -69,9 +79,12 @@ giftlist/
   accounts.py      sign-in with invites, households, admin, new season
   lists.py         items, ordering, the Everyone view
   claims.py        claims, splits, bought, notices
+  activity.py      the site-wide Activity feed (household-hidden the same as Everyone)
+  email_digest.py  Gerry's daily digest email -- python -m giftlist.email_digest, hourly
   gerry.py         Gerry's triggers, lines and frequency (pure functions)
   linkpreview.py   shop link -> name, photo, price (blocks private addresses)
   auth.py          Google OpenID client
+  mail.py          SMTP sending (magic-sign-in link, daily digest)
   money.py         integer cents
   web/             Flask routes, CSRF, sessions, Gerry plumbing
   templates/, static/

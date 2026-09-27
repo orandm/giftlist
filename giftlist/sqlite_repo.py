@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
 
-from .models import Claim, Household, Item, Notice, NoticeKind, Person, User
+from .models import Activity, ActivityKind, Claim, Household, Item, Notice, NoticeKind, Person, User
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -22,7 +22,10 @@ CREATE TABLE IF NOT EXISTS users (
     gerry_last_line    TEXT,
     visit_count        INTEGER NOT NULL DEFAULT 0,
     visits_since_claim INTEGER NOT NULL DEFAULT 0,
-    punishment_mode    INTEGER NOT NULL DEFAULT 0
+    punishment_mode    INTEGER NOT NULL DEFAULT 0,
+    email_subscribed   INTEGER NOT NULL DEFAULT 0,
+    timezone           TEXT,
+    last_digest_sent_date TEXT
 );
 CREATE TABLE IF NOT EXISTS households (
     id           INTEGER PRIMARY KEY,
@@ -87,6 +90,14 @@ CREATE TABLE IF NOT EXISTS magic_links (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     token   TEXT NOT NULL UNIQUE
 );
+CREATE TABLE IF NOT EXISTS activity (
+    id           INTEGER PRIMARY KEY,
+    kind         TEXT NOT NULL,
+    household_id INTEGER REFERENCES households(id) ON DELETE CASCADE,
+    person_id    INTEGER REFERENCES people(id) ON DELETE CASCADE,
+    params       TEXT NOT NULL,
+    created_at   TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_people_household ON people(household_id);
 CREATE INDEX IF NOT EXISTS idx_items_person ON items(person_id, position);
 CREATE INDEX IF NOT EXISTS idx_gerry_events_user ON gerry_events(user_id);
@@ -94,6 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_gerry_events_at ON gerry_events(at);
 CREATE INDEX IF NOT EXISTS idx_claims_user ON claims(user_id);
 CREATE INDEX IF NOT EXISTS idx_notices_user ON notices(user_id);
 CREATE INDEX IF NOT EXISTS idx_item_shares_person ON item_shares(person_id);
+CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at);
 """
 
 
@@ -118,6 +130,9 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     _ensure_column(conn, "users", "punishment_mode", "INTEGER NOT NULL DEFAULT 0")
     _ensure_column(conn, "items", "is_voucher", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(conn, "users", "email_subscribed", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(conn, "users", "timezone", "TEXT")
+    _ensure_column(conn, "users", "last_digest_sent_date", "TEXT")
 
 
 def _dt(text: str | None) -> datetime | None:
@@ -127,7 +142,7 @@ def _dt(text: str | None) -> datetime | None:
 def _user(r) -> User:
     return User(r["id"], r["google_sub"], r["email"], r["name"], _dt(r["created_at"]), _dt(r["last_seen_at"]),
                 bool(r["gerry_ghost"]), r["gerry_last_line"], r["visit_count"], r["visits_since_claim"],
-                bool(r["punishment_mode"]))
+                bool(r["punishment_mode"]), bool(r["email_subscribed"]), r["timezone"], r["last_digest_sent_date"])
 
 
 def _household(r) -> Household:
@@ -150,6 +165,11 @@ def _claim(r) -> Claim:
 
 def _notice(r) -> Notice:
     return Notice(r["id"], r["user_id"], NoticeKind(r["kind"]), json.loads(r["params"]), _dt(r["created_at"]))
+
+
+def _activity(r) -> Activity:
+    return Activity(r["id"], ActivityKind(r["kind"]), r["household_id"], r["person_id"],
+                    json.loads(r["params"]), _dt(r["created_at"]))
 
 
 class SqliteRepository:
@@ -244,6 +264,16 @@ class SqliteRepository:
 
     def set_punishment_mode(self, user_id, enabled):
         self._run("UPDATE users SET punishment_mode = ? WHERE id = ?", int(enabled), user_id)
+
+    def set_email_subscription(self, user_id, subscribed, timezone):
+        self._run("UPDATE users SET email_subscribed = ?, timezone = ? WHERE id = ?",
+                  int(subscribed), timezone, user_id)
+
+    def set_last_digest_sent(self, user_id, date_iso):
+        self._run("UPDATE users SET last_digest_sent_date = ? WHERE id = ?", date_iso, user_id)
+
+    def subscribed_users(self):
+        return [_user(r) for r in self._all("SELECT * FROM users WHERE email_subscribed = 1")]
 
     # households -----------------------------------------------------------
 
@@ -398,6 +428,23 @@ class SqliteRepository:
 
     def delete_all_notices(self):
         self._run("DELETE FROM notices")
+
+    # activity (the site-wide notice board) ----------------------------------
+
+    def add_activity(self, kind, household_id, person_id, params, at):
+        self._run("INSERT INTO activity (kind, household_id, person_id, params, created_at) VALUES (?, ?, ?, ?, ?)",
+                  kind.value, household_id, person_id, json.dumps(params), at.isoformat())
+
+    def recent_activity(self, limit):
+        return [_activity(r) for r in self._all(
+            "SELECT * FROM activity ORDER BY id DESC LIMIT ?", limit)]
+
+    def activity_since(self, since_iso):
+        return [_activity(r) for r in self._all(
+            "SELECT * FROM activity WHERE created_at >= ? ORDER BY id DESC", since_iso)]
+
+    def delete_all_activity(self):
+        self._run("DELETE FROM activity")
 
     # settings -------------------------------------------------------------
 

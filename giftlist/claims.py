@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from . import access, clock
+from . import access, activity, clock
 from .errors import DomainError, NotAllowed, NotFound, OverClaimed
-from .models import Claim, Contribution, Item, ItemView, MyClaim, Notice, NoticeKind, Person, User
+from .models import ActivityKind, Claim, Contribution, Item, ItemView, MyClaim, Notice, NoticeKind, Person, User
 from .repository import Repository
 
 
@@ -71,6 +71,8 @@ def claim(repo: Repository, user: User, item_id: int, amount_minor: int) -> Clai
                 raise OverClaimed("That's more than what's left. Generous, but no.")
         repo.add_claim(item_id, user.id, amount_minor, clock.now())
         repo.reset_visits_since_claim(user.id)
+        activity.log(repo, ActivityKind.ITEM_CLAIMED, household_id=owner.household_id, person_id=owner.id,
+                    item=item.title, owner_name=owner.name, claimer_name=user.name, amount_minor=amount_minor)
         return ClaimOutcome(item, owner, amount_minor, 0, max(0, remaining), claimed + amount_minor)
 
 
@@ -109,6 +111,8 @@ def withdraw(repo: Repository, user: User, item_id: int) -> ClaimOutcome:
         if others == 0 and item.is_bought:
             repo.set_bought(item_id, None)
         _notify_co_claimers(repo, item, owner, user, NoticeKind.SHARE_WITHDRAWN, {"old_minor": mine.amount_minor})
+        activity.log(repo, ActivityKind.ITEM_WITHDRAWN, household_id=owner.household_id, person_id=owner.id,
+                    item=item.title, owner_name=owner.name, claimer_name=user.name, amount_minor=mine.amount_minor)
         return ClaimOutcome(item, owner, 0, mine.amount_minor, max(0, item.price_minor - others - mine.amount_minor), others)
 
 
@@ -128,6 +132,8 @@ def mark_bought(repo: Repository, user: User, item_id: int) -> ClaimOutcome:
             raise DomainError("Can't mark it bought until it's fully covered. Someone needs to cough up.")
         repo.set_bought(item_id, clock.now())
         mine = next(c.amount_minor for c in claims if c.user_id == user.id)
+        activity.log(repo, ActivityKind.ITEM_BOUGHT, household_id=owner.household_id, person_id=owner.id,
+                    item=item.title, owner_name=owner.name, buyer_name=user.name)
         return ClaimOutcome(item, owner, mine, mine, 0, claimed)
 
 

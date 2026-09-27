@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from zoneinfo import available_timezones
+
 from flask import Blueprint, abort, flash, g, jsonify, redirect, request, send_from_directory, url_for
 
-from .. import access, accounts, badges, claims, clock, gerry, linkpreview, lists
+from .. import access, accounts, activity, badges, claims, clock, gerry, linkpreview, lists
 from ..errors import DomainError
 from ..money import InvalidAmount, parse_amount
 from .support import cfg, current_user, domain_action, fail, gerry_react, login_required, next_url, render, repo
 
 bp = Blueprint("pages", __name__)
+
+_TIMEZONES = sorted(available_timezones())
 
 
 def _amount(field: str = "amount") -> int:
@@ -18,6 +22,27 @@ def _amount(field: str = "amount") -> int:
 
 def _everyone_anchor(item_id: int) -> str:
     return url_for("pages.everyone") + f"#item-{item_id}"
+
+
+# --- Activity ----------------------------------------------------------------------
+
+@bp.get("/activity")
+@login_required
+def activity_feed():
+    user = current_user()
+    return render("activity.html", activities=activity.feed(repo(), user), timezones=_TIMEZONES,
+                  my_timezone=user.timezone or clock.LOCAL.key, tab="activity")
+
+
+@bp.post("/activity/subscribe")
+@login_required
+def set_email_subscription():
+    def act():
+        subscribed = bool(request.form.get("subscribed"))
+        accounts.set_email_subscription(repo(), current_user(), subscribed, request.form.get("timezone") or None)
+        flash("You're on the list -- Gerry will be in touch." if subscribed else "Unsubscribed. Gerry's relieved.", "ok")
+        return redirect(url_for("pages.activity_feed"))
+    return domain_action(url_for("pages.activity_feed"), act)
 
 
 # --- Everyone ----------------------------------------------------------------------

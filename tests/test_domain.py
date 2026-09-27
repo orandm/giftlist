@@ -5,10 +5,10 @@ import unittest
 from datetime import UTC, datetime
 from unittest.mock import patch
 
-from giftlist import accounts, badges, claims, gerry, lists
+from giftlist import accounts, activity, badges, claims, clock, gerry, lists
 from giftlist.accounts import Invite
 from giftlist.errors import DomainError, NotAllowed, NotFound, OverClaimed
-from giftlist.models import Funding, NoticeKind
+from giftlist.models import ActivityKind, Funding, NoticeKind
 from giftlist.money import MAX_MINOR, InvalidAmount, parse_amount
 from giftlist.sqlite_repo import SqliteRepository, connect, init_db
 
@@ -417,6 +417,57 @@ class TestVouchers(World):
     def test_non_voucher_item_still_caps_at_the_price(self):
         with self.assertRaises(OverClaimed):
             claims.claim(self.repo, self.ciaran, self.coat.id, 9000)  # coat's price is 8000
+
+
+class TestActivity(World):
+    def test_household_created_is_visible_to_everyone(self):
+        names = [a.params.get("household_name") for a in activity.feed(self.repo, self.aoife)
+                if a.kind is ActivityKind.HOUSEHOLD_CREATED]
+        self.assertIn("Máire's household", names)
+
+    def test_item_added_hidden_from_own_household_visible_to_others(self):
+        self.assertTrue(any(a.kind is ActivityKind.ITEM_ADDED and a.params["item"] == "Wool coat"
+                            for a in activity.feed(self.repo, self.ciaran)))
+        self.assertFalse(any(a.kind is ActivityKind.ITEM_ADDED and a.params["item"] == "Wool coat"
+                             for a in activity.feed(self.repo, self.maire)))
+        self.assertFalse(any(a.kind is ActivityKind.ITEM_ADDED and a.params["item"] == "Wool coat"
+                             for a in activity.feed(self.repo, self.sean)))
+
+    def test_revealing_yourself_makes_your_activity_visible_to_that_viewer(self):
+        scarf = lists.add_item(self.repo, self.aoife, self.p_aoife.id, "Scarf", None, None, 3000, None, False)
+        self.assertFalse(any(a.params.get("item") == "Scarf" for a in activity.feed(self.repo, self.ciaran)))
+        accounts.set_reveal(self.repo, self.ciaran, self.p_aoife.id, True)
+        self.assertTrue(any(a.params.get("item") == "Scarf" for a in activity.feed(self.repo, self.ciaran)))
+
+    def test_claim_bought_withdrawn_logged_and_hidden_from_owner(self):
+        claims.claim(self.repo, self.ciaran, self.coat.id, 8000)
+        claims.mark_bought(self.repo, self.ciaran, self.coat.id)
+        claims.withdraw(self.repo, self.ciaran, self.coat.id)
+        kinds = {a.kind for a in activity.feed(self.repo, self.aoife) if a.params.get("item") == "Wool coat"}
+        self.assertEqual(kinds, {ActivityKind.ITEM_ADDED, ActivityKind.ITEM_CLAIMED,
+                                 ActivityKind.ITEM_BOUGHT, ActivityKind.ITEM_WITHDRAWN})
+        self.assertFalse(any(a.params.get("item") == "Wool coat" and a.kind is not ActivityKind.ITEM_ADDED
+                             for a in activity.feed(self.repo, self.maire)))
+
+    def test_edit_and_delete_logged(self):
+        lists.edit_item(self.repo, self.maire, self.coat.id, "Wool coat", None, None, 9000, None, True)
+        scarf = lists.add_item(self.repo, self.maire, self.p_maire.id, "Scarf", None, None, 1000, None, False)
+        lists.delete_item(self.repo, self.maire, scarf.id)
+        kinds = {a.kind for a in activity.feed(self.repo, self.ciaran) if a.params.get("item") in ("Wool coat", "Scarf")}
+        self.assertIn(ActivityKind.ITEM_EDITED, kinds)
+        self.assertIn(ActivityKind.ITEM_REMOVED, kinds)
+
+    def test_new_season_clears_activity(self):
+        self.assertTrue(self.repo.recent_activity(100))
+        accounts.new_season(self.repo)
+        self.assertEqual(self.repo.recent_activity(100), [])
+
+    def test_feed_since_is_chronological_and_time_bounded(self):
+        from datetime import timedelta
+        items = activity.feed_since(self.repo, self.aoife, clock.now() - timedelta(hours=1))
+        self.assertTrue(items)
+        self.assertEqual([a.id for a in items], sorted(a.id for a in items))
+        self.assertEqual(activity.feed_since(self.repo, self.aoife, clock.now() + timedelta(hours=1)), [])
 
 
 class TestOrdering(World):

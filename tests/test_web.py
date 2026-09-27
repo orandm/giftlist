@@ -308,6 +308,30 @@ class WebTests(unittest.TestCase):
         self.assertNotIn("gerry-echo", page)
         self.assertIn("data-gerry", page)
 
+    # --- activity notice board ---------------------------------------------------------
+
+    def test_activity_tab_is_left_of_everyone(self):
+        page = self.boss.text("/")
+        self.assertLess(page.index("Activity</a>"), page.index("Everyone</a>"))
+
+    def test_activity_feed_shows_others_hides_own_household(self):
+        mam = Browser(self.app)
+        mam.sign_in("mam@x.ie", self.invite)
+        self.add_item(mam, "Scarf", "30")
+        boss_feed = self.boss.text("/activity")
+        mam_feed = mam.text("/activity")
+        self.assertIn("Scarf", boss_feed)
+        self.assertNotIn("Scarf", mam_feed)
+
+    def test_subscribe_and_unsubscribe(self):
+        r = self.boss.post("/activity/subscribe", {"subscribed": "1", "timezone": "America/New_York"})
+        self.assertEqual(r.status_code, 302)
+        page = self.boss.text("/activity")
+        self.assertIn('value="America/New_York" selected', page)
+        self.assertIn('name="subscribed"', page)
+        r = self.boss.post("/activity/subscribe", {"timezone": "America/New_York"})  # box unchecked
+        self.assertIn("Unsubscribed", self.boss.text("/activity"))
+
     # --- admin ------------------------------------------------------------------------
 
     def test_admin_is_hidden_from_others(self):
@@ -345,6 +369,13 @@ class WebTests(unittest.TestCase):
         self.boss.post("/admin/season", {"confirm": "CLEAR"})
         self.assertNotIn("Socks", self.boss.text("/my-list"))
 
+    def test_admin_test_digest_without_smtp_flashes_gracefully(self):
+        r = self.boss.post("/admin/mail/test-digest")
+        self.assertEqual(r.status_code, 302)
+        page = self.boss.text("/admin")
+        self.assertIn("SMTP isn", page)
+        self.assertIn("configured", page)
+
     # --- odds and ends -------------------------------------------------------------
 
     def test_image_path_traversal_blocked(self):
@@ -356,7 +387,7 @@ class WebTests(unittest.TestCase):
         self.assertEqual(r.get_json()["title"], None)
 
     def test_pages_render(self):
-        for path in ["/", "/my-list", "/my-buys", "/household", "/welcome", "/admin"]:
+        for path in ["/", "/my-list", "/my-buys", "/household", "/welcome", "/admin", "/activity"]:
             r = self.boss.get(path)
             self.assertEqual(r.status_code, 200, path)
         pid = self.person_id(self.boss)

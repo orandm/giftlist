@@ -37,6 +37,9 @@ class User:
     visit_count: int
     visits_since_claim: int
     punishment_mode: bool  # admin-set; magic-link accounts default to it
+    email_subscribed: bool = False  # opted into Gerry's daily activity digest
+    timezone: str | None = None  # IANA zone name; None = site default (clock.LOCAL)
+    last_digest_sent_date: str | None = None  # ISO date, in the user's own timezone
 
 
 @dataclass(slots=True, frozen=True)
@@ -100,6 +103,29 @@ class Notice:
     id: int
     user_id: int
     kind: NoticeKind
+    params: dict = field(hash=False)
+    created_at: datetime
+
+
+class ActivityKind(Enum):
+    """The site-wide notice board -- everything except what's happened to
+    your own household's lists, which stays a surprise."""
+
+    HOUSEHOLD_CREATED = "household_created"
+    ITEM_ADDED = "item_added"
+    ITEM_EDITED = "item_edited"
+    ITEM_REMOVED = "item_removed"
+    ITEM_CLAIMED = "item_claimed"
+    ITEM_BOUGHT = "item_bought"
+    ITEM_WITHDRAWN = "item_withdrawn"
+
+
+@dataclass(slots=True, frozen=True)
+class Activity:
+    id: int
+    kind: ActivityKind
+    household_id: int | None  # whose list this concerns, for the same-household hide rule
+    person_id: int | None     # for the reveal check, when household_id == a viewer's own
     params: dict = field(hash=False)
     created_at: datetime
 

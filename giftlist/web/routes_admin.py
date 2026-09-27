@@ -6,7 +6,7 @@ import os
 
 from flask import Blueprint, flash, redirect, request, url_for
 
-from .. import accounts, mail
+from .. import accounts, email_digest, mail
 from ..errors import DomainError
 from .support import admin_required, cfg, current_user, login_required, render, repo
 
@@ -96,6 +96,22 @@ def regenerate_magic(user_id: int):
         flash(f"New link emailed to {user.email}. The old one's dead.", "ok")
     except Exception:
         flash(f"Couldn't email it -- here's the new link to send yourself: {link}", "ok")
+    return redirect(url_for("admin.overview"))
+
+
+@bp.post("/mail/test-digest")
+@login_required
+@admin_required
+def send_test_digest():
+    user = current_user()
+    try:
+        had_activity = email_digest.send_test(repo(), cfg(), user)
+        flash(f"Test digest sent to {user.email}." if had_activity else
+              f"Test digest sent to {user.email} (no real activity in the last 24h, so it's a bit bare).", "ok")
+    except mail.MailNotConfigured:
+        flash("SMTP isn't configured (SMTP_HOST is empty).", "error")
+    except Exception as e:
+        flash(f"Couldn't send it: {e}", "error")
     return redirect(url_for("admin.overview"))
 
 
