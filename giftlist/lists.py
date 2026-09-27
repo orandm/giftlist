@@ -92,10 +92,18 @@ def edit_item(repo: Repository, user: User, item_id: int, title: str, url: str |
 
 
 def delete_item(repo: Repository, user: User, item_id: int) -> Item:
+    """A bought item can't be taken down -- whoever bought it gets told you tried,
+    instead of the item just vanishing on them."""
     with repo.write():
         item, person = _editable_item(repo, user, item_id)
-        claims.remove_item_with_notices(repo, item, person)
-        return item
+        if item.is_bought:
+            claims.notify_removal_blocked(repo, item, person)
+        else:
+            claims.remove_item_with_notices(repo, item, person)
+    if item.is_bought:
+        raise DomainError("Can't take that off the list now -- it's already bought. "
+                          "Whoever's got it has been told you tried; sort it out with them directly.")
+    return item
 
 
 # --- household gifts: sharing an item with someone else in your household ----

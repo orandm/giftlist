@@ -6,11 +6,13 @@
 <section class="section" aria-label="Updates">
 {% for n in notices %}
 {% set p = n.params %}
-<div class="notice{% if n.kind.value == 'item_removed' %} bad{% endif %}">
+<div class="notice{% if n.kind.value in ('item_removed', 'remove_blocked') %} bad{% endif %}">
 <p>
 {% if n.kind.value == 'item_removed' %}
   {% if p.bought %}<strong>Awkward.</strong> {{ p.owner }} took “{{ p.item }}” off their list, and it was already bought. You'd put in {{ p.amount_minor|money }}. Might be time for a quiet word.
   {% else %}<strong>Heads up.</strong> {{ p.owner }} took “{{ p.item }}” off their list. Your {{ p.amount_minor|money }} claim's gone, so don't buy it.{% endif %}
+{% elif n.kind.value == 'remove_blocked' %}
+  <strong>Heads up.</strong> {{ p.owner }} tried to take “{{ p.item }}” off their list, but it's already marked bought so we stopped them. You'd put in {{ p.amount_minor|money }}. Might be worth a quiet word.
 {% elif n.kind.value == 'share_changed' %}
   <strong>{{ p.who }}</strong> changed their share of “{{ p.item }}” for {{ p.owner }} from {{ p.old_minor|money }} to {{ p.new_minor|money }}.
   {% if p.remaining_minor %}{{ p.remaining_minor|money }} still needed.{% endif %}
@@ -23,7 +25,7 @@
 <div class="actions">
 {% if p.item_id %}<a class="btn btn-green" href="{{ url_for('pages.everyone') }}#item-{{ p.item_id }}">See the item</a>{% endif %}
 <form method="post" action="{{ url_for('pages.dismiss', notice_id=n.id) }}">{{ csrf() }}
-<button class="btn btn-outline{% if n.kind.value == 'item_removed' %} danger{% endif %}">Grand, got it</button></form>
+<button class="btn btn-outline{% if n.kind.value in ('item_removed', 'remove_blocked') %} danger{% endif %}">Grand, got it</button></form>
 </div>
 </div>
 {% endfor %}

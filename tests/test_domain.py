@@ -261,13 +261,23 @@ class TestClaims(World):
 
 class TestRemoval(World):
     def test_owner_removes_claimed_item(self):
-        claims.claim(self.repo, self.ciaran, self.coat.id, 8000)
-        claims.mark_bought(self.repo, self.ciaran, self.coat.id)
+        claims.claim(self.repo, self.ciaran, self.coat.id, 4000)
         lists.delete_item(self.repo, self.maire, self.coat.id)
         [n] = claims.notices(self.repo, self.ciaran)
         self.assertEqual(n.kind, NoticeKind.ITEM_REMOVED)
-        self.assertTrue(n.params["bought"])
+        self.assertFalse(n.params["bought"])
         self.assertEqual(claims.my_claims(self.repo, self.ciaran), [])
+
+    def test_owner_cannot_remove_an_already_bought_item(self):
+        claims.claim(self.repo, self.ciaran, self.coat.id, 8000)
+        claims.mark_bought(self.repo, self.ciaran, self.coat.id)
+        with self.assertRaises(DomainError):
+            lists.delete_item(self.repo, self.maire, self.coat.id)
+        self.assertIsNotNone(self.repo.item(self.coat.id))
+        [n] = claims.notices(self.repo, self.ciaran)
+        self.assertEqual(n.kind, NoticeKind.REMOVE_BLOCKED)
+        self.assertEqual(n.params["item"], "Wool coat")
+        self.assertEqual(n.params["item_id"], self.coat.id)
 
     def test_admin_renames_any_household(self):
         hh, _ = accounts.my_household(self.repo, self.ciaran)

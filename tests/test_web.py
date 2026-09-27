@@ -182,11 +182,26 @@ class WebTests(unittest.TestCase):
         self.add_item(mam, "Scarf", "30")
         scarf = self.item_id(self.boss, "Scarf")
         self.boss.post(f"/items/{scarf}/claim", {"amount": "rest"})
-        self.boss.post(f"/items/{scarf}/bought")
         mam.post(f"/items/{scarf}/delete")
         buys = self.boss.text("/my-buys")
-        self.assertIn("Awkward.", buys)
-        self.assertIn("already bought", buys)
+        self.assertIn("Heads up.", buys)
+        self.assertIn("claim's gone", buys)
+
+    def test_owner_cannot_delete_an_already_bought_item(self):
+        mam = Browser(self.app)
+        mam.sign_in("mam@x.ie", self.invite)
+        self.add_item(mam, "Scarf", "30")
+        scarf = self.item_id(self.boss, "Scarf")
+        self.boss.post(f"/items/{scarf}/claim", {"amount": "rest"})
+        self.boss.post(f"/items/{scarf}/bought")
+        mam.post(f"/items/{scarf}/delete")
+        mine = mam.text("/my-list")
+        self.assertIn("already bought", mine)
+        self.assertIn("Scarf", mine)  # still there
+        self.assertEqual(self.boss.text("/my-buys").count("Awkward."), 0)
+        buys = self.boss.text("/my-buys")  # the buyer gets told the owner tried
+        self.assertIn("tried to take", buys)
+        self.assertIn("Scarf", buys)
 
     def test_dependents_and_their_lists(self):
         self.boss.post("/household/people", {"name": "Liam"})

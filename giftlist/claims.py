@@ -166,6 +166,16 @@ def remove_item_with_notices(repo: Repository, item: Item, owner: Person) -> Non
     repo.delete_item(item.id)
 
 
+def notify_removal_blocked(repo: Repository, item: Item, owner: Person) -> None:
+    """The owner tried to take down an item that's already bought -- whoever bought
+    it gets told, since the owner can't be shown who that is. The item's still there,
+    so the notice links straight to it."""
+    for c in repo.claims_for_item(item.id):
+        repo.add_notice(c.user_id, NoticeKind.REMOVE_BLOCKED,
+                        {"item": item.title, "owner": owner.name, "amount_minor": c.amount_minor,
+                         "item_id": item.id}, clock.now())
+
+
 def drop_claim_with_notices(repo: Repository, claim_: Claim, actor: User) -> None:
     """Remove someone's claim (they left, or moved household); co-claimers are told."""
     item = repo.item(claim_.item_id)

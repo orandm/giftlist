@@ -92,6 +92,7 @@ class NoticeKind(Enum):
     ITEM_REMOVED = "item_removed"      # owner removed an item you'd claimed
     SHARE_CHANGED = "share_changed"    # a co-splitter changed their share
     SHARE_WITHDRAWN = "share_withdrawn"  # a co-splitter withdrew
+    REMOVE_BLOCKED = "remove_blocked"  # owner tried to remove an item you'd already bought
 
 
 @dataclass(slots=True, frozen=True)

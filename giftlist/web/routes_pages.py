@@ -222,10 +222,14 @@ def toggle_item_share(item_id: int):
 @bp.post("/items/<int:item_id>/delete")
 @login_required
 def delete_item(item_id: int):
+    item = repo().item(item_id)
+    if item is None:
+        abort(404)
+
     def act():
-        item = lists.delete_item(repo(), current_user(), item_id)
-        return redirect(_list_url(item.person_id))
-    return domain_action(url_for("pages.my_list"), act)
+        deleted = lists.delete_item(repo(), current_user(), item_id)
+        return redirect(_list_url(deleted.person_id))
+    return domain_action(_list_url(item.person_id), act)
 
 
 @bp.post("/items/<int:item_id>/move")
