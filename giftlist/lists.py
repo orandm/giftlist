@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from . import access, activity, claims, clock
 from .errors import DomainError, NotAllowed, NotFound
-from .models import ActivityKind, HouseholdView, Item, Person, PersonView, User
+from .models import ActivityKind, HouseholdView, Item, Person, PersonView, SharedGroupView, User
 from .money import MAX_MINOR
 from .repository import Repository
 
@@ -186,24 +186,46 @@ def everyone(repo: Repository, user: User) -> list[HouseholdView]:
 
     A gift shared between household-mates only shows once *every* co-owner is
     revealed to you -- revealing one of them isn't the other's consent to
-    spoil a gift that's just as much theirs, so it stays out until both are."""
+    spoil a gift that's just as much theirs, so it stays out until both are.
+    Shared gifts are grouped together under all their co-owners' names,
+    separate from each person's own individual list."""
     mine = access.household_id_of(repo, user)
     revealed = repo.revealed_person_ids(user.id)
     out = []
     for hh in repo.all_households():
         own_household = hh.id == mine
-        candidates = [p for p in repo.people_in_household(hh.id) if p.id in revealed] \
-            if own_household else repo.people_in_household(hh.id)
-        people = []
+        all_people = repo.people_in_household(hh.id)
+        by_id = {p.id: p for p in all_people}
+        candidates = [p for p in all_people if p.id in revealed] if own_household else all_people
+
+        individual_by_person: dict[int, list] = {}
+        shared_by_group: dict[frozenset, list] = {}
+        shared_by_person: dict[int, list] = {}
         for p in candidates:
-            items = repo.items_for_person(p.id)
-            if own_household:
-                items = [i for i in items
-                        if {p.id, *(co.id for co in repo.people_sharing_item(i.id))} <= revealed]
-            people.append(PersonView(p, tuple(claims.item_view(repo, i) for i in items)))
-        people = tuple(people)
-        if people:
-            out.append(HouseholdView(hh, people))
+            for i in repo.items_for_person(p.id):
+                co_owners = repo.people_sharing_item(i.id)
+                if not co_owners:
+                    individual_by_person.setdefault(p.id, []).append(i)
+                    continue
+                group_ids = frozenset({p.id, *(co.id for co in co_owners)})
+                if own_household and not group_ids <= revealed:
+                    continue
+                shared_by_group.setdefault(group_ids, []).append(i)
+                for pid in group_ids:
+                    shared_by_person.setdefault(pid, []).append(i)
+
+        people = tuple(
+            PersonView(p, tuple(claims.item_view(repo, i) for i in individual_by_person.get(p.id, [])),
+                      tuple(claims.item_view(repo, i) for i in shared_by_person.get(p.id, [])))
+            for p in candidates
+        )
+        shared = tuple(
+            SharedGroupView(tuple(sorted((by_id[pid] for pid in group_ids), key=lambda pp: pp.name)),
+                           tuple(claims.item_view(repo, i) for i in items_))
+            for group_ids, items_ in shared_by_group.items()
+        )
+        if people or shared:
+            out.append(HouseholdView(hh, people, shared))
     return out
 
 

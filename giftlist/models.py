@@ -167,7 +167,29 @@ class ItemView:
 @dataclass(slots=True, frozen=True)
 class PersonView:
     person: Person
+    items: tuple[ItemView, ...]                    # this person's own, unshared gifts
+    shared_items: tuple[ItemView, ...] = ()         # gifts they co-own, shown under SharedGroupView instead
+
+    @property
+    def all_items(self) -> tuple[ItemView, ...]:
+        return self.items + self.shared_items
+
+    @property
+    def still_needed(self) -> int:
+        return sum(1 for v in self.all_items if v.remaining_minor > 0 and not v.item.is_bought)
+
+
+@dataclass(slots=True, frozen=True)
+class SharedGroupView:
+    """Gifts co-owned by more than one household-mate, grouped under all their names."""
+
+    people: tuple[Person, ...]
     items: tuple[ItemView, ...]
+
+    @property
+    def name(self) -> str:
+        names = [p.name for p in self.people]
+        return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
     @property
     def still_needed(self) -> int:
@@ -178,6 +200,7 @@ class PersonView:
 class HouseholdView:
     household: Household
     people: tuple[PersonView, ...]
+    shared: tuple[SharedGroupView, ...] = ()
 
 
 @dataclass(slots=True, frozen=True)

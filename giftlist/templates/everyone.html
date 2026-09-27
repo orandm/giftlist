@@ -34,11 +34,21 @@
 <details class="person">
 <summary><span>
 <span class="person-name">{{ pv.person.name }}</span>
-{% if not pv.items %}<span class="status">Hasn't bothered adding anything yet</span>
-{% elif pv.still_needed %}<span class="status">{{ pv.still_needed }} of {{ pv.items|length }} still up for grabs</span>
+{% if not pv.all_items %}<span class="status">Hasn't bothered adding anything yet</span>
+{% elif pv.still_needed %}<span class="status">{{ pv.still_needed }} of {{ pv.all_items|length }} still up for grabs</span>
 {% else %}<span class="status done">Sorted. You're off the hook.</span>{% endif %}
 </span></summary>
 {% if pv.items %}<div class="items">{% for v in pv.items %}{{ item_card(v, me, loop.index) }}{% endfor %}</div>{% endif %}
+</details>
+{% endfor %}
+{% for sg in hh.shared %}
+<details class="person">
+<summary><span>
+<span class="person-name">{{ sg.name }}</span>
+{% if sg.still_needed %}<span class="status">{{ sg.still_needed }} of {{ sg.items|length }} still up for grabs</span>
+{% else %}<span class="status done">Sorted. You're off the hook.</span>{% endif %}
+</span></summary>
+<div class="items">{% for v in sg.items %}{{ item_card(v, me, loop.index) }}{% endfor %}</div>
 </details>
 {% endfor %}
 </div>

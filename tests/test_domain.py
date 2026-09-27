@@ -44,6 +44,10 @@ class World(unittest.TestCase):
                 for v in pv.items:
                     if v.item.id == item_id:
                         return v
+            for sg in hh.shared:
+                for v in sg.items:
+                    if v.item.id == item_id:
+                        return v
         return None
 
 
@@ -417,7 +421,11 @@ class TestSharedGiftReveal(World):
         views = lists.everyone(self.repo, self.nora)
         hh = next(v for v in views if v.household.id == self.p_maire.household_id)
         maire_view = next((pv for pv in hh.people if pv.person.id == self.p_maire.id), None)
-        return [v.item.id for v in maire_view.items] if maire_view else []
+        ids = [v.item.id for v in maire_view.items] if maire_view else []
+        for sg in hh.shared:
+            if any(p.id == self.p_maire.id for p in sg.people):
+                ids.extend(v.item.id for v in sg.items)
+        return ids
 
     def test_revealing_only_one_co_owner_still_hides_the_shared_gift(self):
         accounts.set_reveal(self.repo, self.nora, self.p_maire.id, True)
@@ -445,6 +453,44 @@ class TestSharedGiftReveal(World):
         self.assertIn(scarf.id, self._maire_items_seen_by_nora())
         outcome = claims.claim(self.repo, self.nora, scarf.id, 500)
         self.assertEqual(outcome.amount_minor, 500)
+
+
+class TestEveryoneSharedGrouping(World):
+    """A shared gift shows once on the Everyone page, grouped under all its
+    co-owners' names, separate from each person's own individual gifts."""
+
+    def setUp(self):
+        super().setUp()
+        self.p_sean = self.repo.person_for_user(self.sean.id)
+        lists.toggle_share(self.repo, self.maire, self.coat.id, self.p_sean.id)
+        self.scarf = lists.add_item(self.repo, self.maire, self.p_maire.id, "Scarf", None, None, 2000, None, False)
+
+    def _household_view(self):
+        views = lists.everyone(self.repo, self.ciaran)
+        return next(v for v in views if v.household.id == self.p_maire.household_id)
+
+    def test_shared_gift_grouped_under_combined_name(self):
+        hh = self._household_view()
+        self.assertEqual(len(hh.shared), 1)
+        group = hh.shared[0]
+        self.assertEqual(group.name, "Máire and Seán")
+        self.assertEqual([v.item.id for v in group.items], [self.coat.id])
+
+    def test_shared_gift_not_duplicated_under_the_owner(self):
+        hh = self._household_view()
+        maire_view = next(pv for pv in hh.people if pv.person.id == self.p_maire.id)
+        self.assertNotIn(self.coat.id, [v.item.id for v in maire_view.items])
+
+    def test_individual_gifts_still_shown_per_person(self):
+        hh = self._household_view()
+        maire_view = next(pv for pv in hh.people if pv.person.id == self.p_maire.id)
+        self.assertEqual([v.item.id for v in maire_view.items], [self.scarf.id])
+
+    def test_co_owners_status_counts_their_shared_gifts_too(self):
+        hh = self._household_view()
+        sean_view = next(pv for pv in hh.people if pv.person.id == self.p_sean.id)
+        self.assertEqual(sean_view.items, ())
+        self.assertEqual(sean_view.still_needed, 1)
 
 
 class TestVouchers(World):
